@@ -187,6 +187,8 @@ class BehaviorDataBuilder(DataBuilder):
             data = [u] + [",".join(str(x) for x in seq) for seq in sequences]
             for f, d in zip(files, data):
                 f.write(f"{d}\n")
+        for f in files:
+            f.close()
         return save_dir
 
     @staticmethod
@@ -196,5 +198,6 @@ class BehaviorDataBuilder(DataBuilder):
             for p_dir in partition_dirs:
                 for v in open(p_dir / d, "r"):
                     f.write(v)
+            f.close()
         for p_dir in partition_dirs:
             shutil.rmtree(p_dir)
