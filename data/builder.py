@@ -132,7 +132,7 @@ class BehaviorDataBuilder(DataBuilder):
         ]
         partition_dirs = ray.get(futures)
         ray.shutdown()
-        # self._merge_partitioned_datasets(partition_dirs, save_dir)
+        self._merge_partitioned_datasets(partition_dirs, save_dir)
 
     def _initialize_item_tokenizer(self):
         self.item_tokenizer = {TOKEN_PAD: 0, TOKEN_MASK: 1, TOKEN_CLS: 2}
