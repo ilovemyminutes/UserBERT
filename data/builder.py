@@ -86,6 +86,14 @@ class BehaviorDataBuilder:
         self._initialize_item_tokenizer()
         self._initialize_value_tokenizer()
 
+    def make_dataset(self, period: tuple[datetime, datetime] | None):
+        source = self.raw_data[
+            (period[0].timestamp() <= self.raw_data[COL_TIMESTAMP])
+            & (self.raw_data[COL_TIMESTAMP] <= period[1].timestamp())
+            & (self.raw_data[COL_ITEM_ID].isin(self.item_tokenizer))
+        ]
+        return source
+
     def _initialize_item_tokenizer(self):
         self.item_tokenizer = {TOKEN_PAD: 0, TOKEN_MASK: 1, TOKEN_CLS: 2}
         source = self.raw_data[
@@ -109,11 +117,3 @@ class BehaviorDataBuilder:
                 for i, value in enumerate(range(1, self.rating_scale + 1), start=len(self.value_tokenizer))
             }
         )
-
-    def make_dataset(self, period: tuple[datetime, datetime] | None):
-        source = self.raw_data[
-            (period[0].timestamp() <= self.raw_data[COL_TIMESTAMP])
-            & (self.raw_data[COL_TIMESTAMP] <= period[1].timestamp())
-            & (self.raw_data[COL_ITEM_ID].isin(self.item_tokenizer))
-        ]
-        return source
