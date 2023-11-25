@@ -18,6 +18,8 @@ from data.utils import (
     TOKEN_CLS,
     TOKEN_PAD,
     TOKEN_MASK,
+    TRAIN_DIR,
+    TEST_DIR,
 )
 
 USER_FILE = "users.txt"
@@ -31,7 +33,7 @@ class DataBuilder(metaclass=ABCMeta):
     def build(self):
         self.collect()
         self.initialize_tokenizers()
-        self.build_dataset()
+        self.build_datasets()
         self.finalize()
 
     @abstractmethod
@@ -43,7 +45,7 @@ class DataBuilder(metaclass=ABCMeta):
         raise NotImplementedError
 
     @abstractmethod
-    def build_dataset(self):
+    def build_datasets(self):
         raise NotImplementedError
 
     @abstractmethod
@@ -98,8 +100,16 @@ class BehaviorDataBuilder(DataBuilder):
         self._initialize_item_tokenizer()
         self._initialize_value_tokenizer()
 
-    def build_dataset(self, period: tuple[datetime, datetime] | None):
-        self.save_dir.mkdir(exist_ok=True, parents=True)
+    def build_datasets(self):
+        self._build_dataset(self.train_period, self.save_dir / TRAIN_DIR)
+        if self.test_period is not None:
+            self._build_dataset(self.test_period, self.save_dir / TEST_DIR)
+
+    def finalize(self):
+        return
+
+    def _build_dataset(self, period: tuple[datetime, datetime] | None, save_dir: Path):
+        save_dir.mkdir(exist_ok=True, parents=True)
 
         ray.init(num_cpus=4, runtime_env={"working_dir": "./"})
         source = self.raw_data[
@@ -114,7 +124,7 @@ class BehaviorDataBuilder(DataBuilder):
 
         futures = [
             self._build_dataset_by_one_process.remote(
-                source_ref, split_user_pool, item_tokenizer_ref, value_tokenizer_ref, self.save_dir / f"{job_id}"
+                source_ref, split_user_pool, item_tokenizer_ref, value_tokenizer_ref, save_dir / f"{job_id}"
             )
             for job_id, split_user_pool in enumerate(
                 self._split_user_pool(set(source[COL_USER_ID]), n_splits=self.n_jobs)
@@ -122,10 +132,7 @@ class BehaviorDataBuilder(DataBuilder):
         ]
         partition_dirs = ray.get(futures)
         ray.shutdown()
-        self._merge_partitioned_datasets(partition_dirs, self.save_dir)
-
-    def finalize(self):
-        return
+        # self._merge_partitioned_datasets(partition_dirs, save_dir)
 
     def _initialize_item_tokenizer(self):
         self.item_tokenizer = {TOKEN_PAD: 0, TOKEN_MASK: 1, TOKEN_CLS: 2}
@@ -173,7 +180,7 @@ class BehaviorDataBuilder(DataBuilder):
         source[COL_ITEM_VALUE] = source[COL_ITEM_VALUE].map(value_tokenizer)
         files = [open(save_dir / f, "w") for f in BEHAVIOR_DATA_FILES]
         for u, sequences in tqdm(
-            source.groupby(COL_USER_ID)[[COL_ITEM_ID, COL_ITEM_VALUE, COL_TIMESTAMP]].agg(list),
+            source.groupby(COL_USER_ID)[[COL_ITEM_ID, COL_ITEM_VALUE, COL_TIMESTAMP]].agg(list).iterrows(),
             total=source[COL_USER_ID].nunique(),
             desc="build dataset",
         ):
