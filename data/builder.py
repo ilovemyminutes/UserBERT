@@ -57,6 +57,7 @@ class BehaviorDataBuilder:
         log_end: datetime,
         test_log_start: datetime | None = None,
         num_items: int = 20000,
+        rating_scale: int = 10,
     ):
         self.data_dir = data_dir
         self.save_dir = save_dir
@@ -70,27 +71,42 @@ class BehaviorDataBuilder:
         )
 
         self.num_items = num_items
+        self.rating_scale = rating_scale
 
         self.raw_data: pd.DataFrame | None = None
         self.item_tokenizer: dict[int, int] | None = None
+        self.value_tokenizer: dict[float, int] | None = None
 
     def collect(self):
         self.raw_data = pd.read_csv(self.data_dir / RAW_FILE, dtype=self.DTYPE).sort_values(
             by=[COL_USER_ID, COL_TIMESTAMP], ignore_index=True
         )
 
-    def initialize_tokenizer(self):
+    def initialize_tokenizers(self):
+        self._initialize_item_tokenizer()
+        self._initialize_value_tokenizer()
+
+    def _initialize_item_tokenizer(self):
+        self.item_tokenizer = {TOKEN_PAD: 0, TOKEN_MASK: 1, TOKEN_CLS: 2}
         source = self.raw_data[
             (self.train_period[0].timestamp() <= self.raw_data[COL_TIMESTAMP])
             & (self.raw_data[COL_TIMESTAMP] <= self.train_period[1].timestamp())
         ]
-        self.item_tokenizer = {TOKEN_PAD: 0, TOKEN_MASK: 1, TOKEN_CLS: 2}
         self.item_tokenizer.update(
             {
                 item_id: i
                 for i, item_id in enumerate(
                     source[COL_ITEM_ID].value_counts().head(self.num_items).index, start=len(self.item_tokenizer)
                 )
+            }
+        )
+
+    def _initialize_value_tokenizer(self):
+        self.value_tokenizer = {TOKEN_PAD: 0, TOKEN_MASK: 1, TOKEN_CLS: 2}
+        self.value_tokenizer.update(
+            {
+                float(v / 2) if self.rating_scale == 10 else v: i
+                for i, v in enumerate(range(1, self.rating_scale + 1), start=len(self.value_tokenizer))
             }
         )
 
