@@ -58,6 +58,7 @@ class BehaviorDataBuilder:
         test_log_start: datetime | None = None,
         num_items: int = 20000,
         rating_scale: int = 10,
+        n_jobs: int = 4
     ):
         self.data_dir = data_dir
         self.save_dir = save_dir
@@ -72,6 +73,7 @@ class BehaviorDataBuilder:
 
         self.num_items = num_items
         self.rating_scale = rating_scale
+        self.n_job = n_jobs
 
         self.raw_data: pd.DataFrame | None = None
         self.item_tokenizer: dict[int, int] | None = None
@@ -91,6 +93,7 @@ class BehaviorDataBuilder:
             (period[0].timestamp() <= self.raw_data[COL_TIMESTAMP])
             & (self.raw_data[COL_TIMESTAMP] <= period[1].timestamp())
             & (self.raw_data[COL_ITEM_ID].isin(self.item_tokenizer))
+            & (self.raw_data[COL_ITEM_VALUE].isin(self.value_tokenizer))
         ]
         return source
 
