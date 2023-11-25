@@ -20,7 +20,7 @@ from data.utils import (
 class DataBuilder(metaclass=ABCMeta):
     def build(self):
         self.collect()
-        self.initialize_tokenizer()
+        self.initialize_tokenizers()
         self.make_dataset()
         self.finalize()
 
@@ -29,7 +29,7 @@ class DataBuilder(metaclass=ABCMeta):
         raise NotImplementedError
 
     @abstractmethod
-    def initialize_tokenizer(self):
+    def initialize_tokenizers(self):
         raise NotImplementedError
 
     @abstractmethod
