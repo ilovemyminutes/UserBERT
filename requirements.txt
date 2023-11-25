@@ -4,6 +4,7 @@ ray==2.8.0
 torch==2.1.1
 torchaudio==2.1.1
 torchvision==0.16.1
+tqdm==4.66.1
 transformers==4.35.2
 numpy==1.26.0
 wandb==0.16.0
