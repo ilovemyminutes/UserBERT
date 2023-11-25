@@ -1,13 +1,13 @@
+import math
+import shutil
 from abc import abstractmethod, ABCMeta
 from datetime import datetime, timedelta
 from pathlib import Path
-import math
 
-import pandas as pd
 import numpy as np
+import pandas as pd
 import ray
 from tqdm import tqdm
-import shutil
 
 from data.utils import (
     RAW_FILE,
