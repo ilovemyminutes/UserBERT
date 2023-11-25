@@ -14,9 +14,9 @@ class UserBERT(pl.LightningModule):
     def __init__(
         self,
         embedding_dim: int,
-        action_type_vocab_size: int,
-        content_vocab_size: int,
-        num_hidden_layers: int = 12,
+        item_vocab_size: int,
+        rating_scale: int = 10,
+        num_hidden_layers: int = 8,
         num_train_negative_samples: int = 4,
         num_valid_negative_samples: int = 4,
         pad_index: int = 0,
@@ -28,10 +28,7 @@ class UserBERT(pl.LightningModule):
     ):
         super().__init__()
         self.embedding_dim = embedding_dim
-        self.encoder = UserEncoder(
-            embedding_dim, action_type_vocab_size, content_vocab_size, num_hidden_layers, pad_index, dropout
-        )
-        self.classifier = nn.Linear(embedding_dim, content_vocab_size)
+        self.encoder = UserEncoder(embedding_dim, item_vocab_size, rating_scale, num_hidden_layers, pad_index, dropout)
 
         self.train_k = num_train_negative_samples
         self.valid_k = num_valid_negative_samples
@@ -41,9 +38,7 @@ class UserBERT(pl.LightningModule):
         self.weight_decay = weight_decay
         self.loss_fn = nn.CrossEntropyLoss()
 
-        self.evaluation_step_outputs: list[
-            tuple[any, any, any, any, torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]
-        ] = []
+        self.evaluation_step_outputs: list[tuple[torch.Tensor, ...]] = []
 
     def forward(
         self,
@@ -58,33 +53,35 @@ class UserBERT(pl.LightningModule):
             loss,
             loss_mbp,
             loss_bsm,
-            loss_lbp,
             _,
             _,
             _,
             _,
-            _,
-            labels_lbp,  # only used to get batch size
+            labels_bsm,
         ) = self._shared_step(batch, k=self.train_k)
-
-        batch_size = len(labels_lbp)
+        batch_size = len(labels_bsm)
         self.log("train_loss", loss, on_step=True, on_epoch=True, batch_size=batch_size)
         self.log("train_loss_mbp", loss_mbp, on_step=True, on_epoch=True, batch_size=batch_size)
         self.log("train_loss_bsm", loss_bsm, on_step=True, on_epoch=True, batch_size=batch_size)
-        self.log("train_loss_lbp", loss_lbp, on_step=True, on_epoch=True, batch_size=batch_size)
         return loss
 
-    def validation_step(self, batch, _):
+    def validation_step(self, batch, _) -> tuple[torch.Tensor, ...]:
         """
         Notations:
             B: batch_size
             K: # negatives
             M: # masks
         """
-        loss, loss_mbp, loss_bsm, loss_lbp, logits_mbp, logits_bsm, logits_lbp, _, _, labels_lbp = self._shared_step(
-            batch, k=self.valid_k
-        )
-        result = loss, loss_mbp, loss_bsm, loss_lbp, logits_mbp, logits_bsm, logits_lbp, labels_lbp
+        (
+            loss,
+            loss_mbp,
+            loss_bsm,
+            logits_mbp,
+            logits_bsm,
+            _,
+            _,
+        ) = self._shared_step(batch, k=self.valid_k)
+        result = (loss, loss_mbp, loss_bsm, logits_mbp, logits_bsm)
         self.evaluation_step_outputs.append(result)
         return result
 
@@ -96,45 +93,28 @@ class UserBERT(pl.LightningModule):
         """
 
         num_batches = len(self.evaluation_step_outputs)
-        loss, loss_mbp, loss_bsm, loss_lbp, preds_mbp, preds_bsm, preds_lbp, labels_lbp = (
-            0.0,
-            0.0,
-            0.0,
-            0.0,
-            [],
-            [],
-            [],
-            [],
-        )
-        for ls, ls_mbp, ls_bsm, ls_lbp, lgt_mbp, lgt_bsm, lgt_lbp, lbl_lbp in self.evaluation_step_outputs:
+        loss, loss_mbp, loss_bsm, preds_mbp, preds_bsm = 0.0, 0.0, 0.0, [], []
+        for ls, ls_mbp, ls_bsm, lgt_mbp, lgt_bsm in self.evaluation_step_outputs:
             preds_mbp.append(lgt_mbp.argmax(dim=1))  # B
             preds_bsm.append(lgt_bsm.argmax(dim=1))  # B
-            preds_lbp.append(lgt_lbp.argmax(dim=1))  # B
-            labels_lbp.append(lbl_lbp)
             loss += ls
             loss_mbp += ls_mbp
             loss_bsm += ls_bsm
-            loss_lbp += ls_lbp
 
-        preds_mbp, preds_bsm, preds_lbp = torch.cat(preds_mbp), torch.cat(preds_bsm), torch.cat(preds_lbp)  # N*B
+        preds_mbp, preds_bsm = torch.cat(preds_mbp), torch.cat(preds_bsm)  # N*B
         labels_mbp = torch.zeros(len(preds_mbp), dtype=torch.long, device=preds_mbp.device)  # N*B
         labels_bsm = torch.zeros(len(preds_bsm), dtype=torch.long, device=preds_bsm.device)  # N*B
-        labels_lbp = torch.cat(labels_lbp)
 
         loss /= num_batches
         loss_mbp /= num_batches
         loss_bsm /= num_batches
-        loss_lbp /= num_batches
         acc_mbp = torch.eq(preds_mbp, labels_mbp).sum() / len(labels_mbp)
         acc_bsm = torch.eq(preds_bsm, labels_bsm).sum() / len(labels_bsm)
-        acc_lbp = torch.eq(preds_lbp, labels_lbp).sum() / len(labels_lbp)
         self.log("valid_loss", loss, sync_dist=True)
         self.log("valid_loss_mbp", loss_mbp, sync_dist=True)
         self.log("valid_loss_bsm", loss_bsm, sync_dist=True)
-        self.log("valid_loss_lbp", loss_lbp, sync_dist=True)
         self.log("valid_acc_mbp", acc_mbp, sync_dist=True)
         self.log("valid_acc_bsm", acc_bsm, sync_dist=True)
-        self.log("valid_acc_lbp", acc_lbp, sync_dist=True)
 
         self.evaluation_step_outputs.clear()
 
@@ -142,32 +122,32 @@ class UserBERT(pl.LightningModule):
         params_to_optimize = get_optimizer_parameters(self, weight_decay=self.weight_decay)
         optimizer = AdamW(params_to_optimize, lr=self.lr)
         scheduler = {
-            "scheduler": OneCycleLR(optimizer, max_lr=self.lr, total_steps=self.trainer.estimated_stepping_batches),
+            "scheduler": OneCycleLR(
+                optimizer,
+                max_lr=self.lr,
+                total_steps=self.trainer.estimated_stepping_batches,
+            ),
             "interval": "step",
         }
         return [optimizer], [scheduler]
 
-    def _shared_step(self, batch, k: int):
-        batch_mbp, batch_bsm, batch_lbp = batch[0], batch[1], batch[1][1]  # batch_lbp: BSM에서 생성한 시퀀스를 재사용
+    def _shared_step(self, batch, k: int) -> tuple[torch.Tensor, ...]:
+        batch_mbp, batch_bsm = batch
         loss_mbp, logits_mbp, labels_mbp = self._get_masked_behavior_prediction_result(
             *batch_mbp, num_negative_samples=k
         )  # B*M x K+1, B*M
         loss_bsm, logits_bsm, labels_bsm = self._get_behavior_sequence_matching_result(
             *batch_bsm, num_negative_samples=k
         )  # B x K+1, B
-        loss_lbp, logits_lbp, labels_lbp = self._get_last_behavior_prediction_result(batch_lbp)
-        loss = loss_mbp + loss_bsm + loss_lbp
+        loss = loss_mbp + loss_bsm
         return (
             loss,
             loss_mbp,
             loss_bsm,
-            loss_lbp,
             logits_mbp,
             logits_bsm,
-            logits_lbp,
             labels_mbp,
             labels_bsm,
-            labels_lbp,
         )
 
     def _get_masked_behavior_prediction_result(
@@ -212,7 +192,10 @@ class UserBERT(pl.LightningModule):
         return loss, logits, labels
 
     def _get_behavior_sequence_matching_result(
-        self, seq_0: list[torch.Tensor], seq_1: list[torch.Tensor], num_negative_samples: int
+        self,
+        seq_0: list[torch.Tensor],
+        seq_1: list[torch.Tensor],
+        num_negative_samples: int,
     ) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
         """BSM: Behavior Sequence Matching
         Notations:
@@ -234,37 +217,11 @@ class UserBERT(pl.LightningModule):
         loss = self.loss_fn(logits / self.t, labels)
         return loss, logits, labels
 
-    def _get_last_behavior_prediction_result(
-        self, raw_seq: list[torch.Tensor]
-    ) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
-        """LBP: Last Behavior Prediction
-        Notations:
-            B: batch size
-            S: sequence length
-            H: embedding dim
-            C: # contents
-        Arguments:
-            raw_seq: B x (S + 1) for each
-        """
-        # raw_seq로부터 input behavior sequence와 content을 분리
-        # Data leakage 방지를 위해 input behavior sequence 중 content을 포함한 behavior를 마스킹
-        with torch.no_grad():
-            content_seq: torch.tensor = raw_seq[1]
-            labels: torch.tensor = content_seq[:, -1]
-            same_as_content_indices: torch.Tensor = (
-                torch.eq(content_seq[:, :-1], labels.unsqueeze(1)).nonzero().unbind(dim=1)
-            )
-            seq_l = []
-            for s in raw_seq:
-                s = s[:, :-1].clone()
-                s[same_as_content_indices[0], same_as_content_indices[1]] = self.mask_index
-                seq_l.append(s)
-        logits = self.classifier(self.encoder(*seq_l))  # B x C
-        loss = self.loss_fn(logits / self.t, labels)
-        return loss, logits, labels
-
     def _sample_negative_behavior_embeddings(
-        self, positive_behaviors: list[torch.Tensor], position_indices: torch.Tensor, num_negative_samples: int
+        self,
+        positive_behaviors: list[torch.Tensor],
+        position_indices: torch.Tensor,
+        num_negative_samples: int,
     ) -> torch.Tensor:
         """각 Positive behaviors에 대응되는 medium hard negative sample을 추출하는 함수
         Neg. sample 후보군은 입력된 pos. behaviors를 바탕으로 구성되며,
@@ -293,7 +250,9 @@ class UserBERT(pl.LightningModule):
             # 학습 효율을 위해 포지션을 랜덤하게 하나로 고정하고 sampling
             sample_position_idx = position_indices[torch.randint(position_indices.size(0), (1, 1))].squeeze()
             pool_embs = self.encoder.extract_behavior_embeddings(
-                candidate_pool[:, :1], candidate_pool[:, 1:], position_indices=sample_position_idx
+                candidate_pool[:, :1],
+                candidate_pool[:, 1:],
+                position_indices=sample_position_idx,
             ).squeeze(
                 dim=1
             )  # P x H
@@ -304,10 +263,14 @@ class UserBERT(pl.LightningModule):
 
         # extract
         neg_b_embs = self.encoder.extract_behavior_embeddings(
-            neg_behaviors[:, :1], neg_behaviors[:, 1:], position_indices=neg_position_indices
+            neg_behaviors[:, :1],
+            neg_behaviors[:, 1:],
+            position_indices=neg_position_indices,
         )  # B*M*K x 1 x H
         neg_b_embs = neg_b_embs.squeeze(1).reshape(
-            neg_b_embs.size(0) // num_negative_samples, num_negative_samples, neg_b_embs.size(2)
+            neg_b_embs.size(0) // num_negative_samples,
+            num_negative_samples,
+            neg_b_embs.size(2),
         )  # B*M x K x H
         return neg_b_embs
 
@@ -337,6 +300,8 @@ class UserBERT(pl.LightningModule):
         # extract
         neg_u_embs = positive_user_embeddings[neg_indices.flatten(), :]  # B*K x H
         neg_u_embs = neg_u_embs.reshape(
-            neg_u_embs.size(0) // num_negative_samples, num_negative_samples, neg_u_embs.size(1)
+            neg_u_embs.size(0) // num_negative_samples,
+            num_negative_samples,
+            neg_u_embs.size(1),
         )  # B x K x H
         return neg_u_embs
