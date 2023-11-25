@@ -51,7 +51,7 @@ class DataBuilder(metaclass=ABCMeta):
         raise NotImplementedError
 
 
-class BehaviorDataBuilder:
+class BehaviorDataBuilder(DataBuilder):
     DTYPE = {
         COL_USER_ID: np.int32,
         COL_ITEM_ID: np.int32,
@@ -123,6 +123,9 @@ class BehaviorDataBuilder:
         partition_dirs = ray.get(futures)
         ray.shutdown()
         self._merge_partitioned_datasets(partition_dirs, self.save_dir)
+
+    def finalize(self):
+        return
 
     def _initialize_item_tokenizer(self):
         self.item_tokenizer = {TOKEN_PAD: 0, TOKEN_MASK: 1, TOKEN_CLS: 2}
