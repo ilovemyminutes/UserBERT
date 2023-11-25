@@ -105,8 +105,8 @@ class BehaviorDataBuilder:
         self.value_tokenizer = {TOKEN_PAD: 0, TOKEN_MASK: 1, TOKEN_CLS: 2}
         self.value_tokenizer.update(
             {
-                float(v / 2) if self.rating_scale == 10 else v: i
-                for i, v in enumerate(range(1, self.rating_scale + 1), start=len(self.value_tokenizer))
+                float(value / 2) if self.rating_scale == 10 else value: i
+                for i, value in enumerate(range(1, self.rating_scale + 1), start=len(self.value_tokenizer))
             }
         )
 
