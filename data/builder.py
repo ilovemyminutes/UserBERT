@@ -3,11 +3,13 @@ from datetime import datetime, timedelta
 from pathlib import Path
 
 import pandas as pd
+import numpy as np
 
 from data.utils import (
     RAW_FILE,
     COL_USER_ID,
     COL_TIMESTAMP,
+    COL_ITEM_VALUE,
     COL_ITEM_ID,
     TOKEN_CLS,
     TOKEN_PAD,
@@ -40,6 +42,13 @@ class DataBuilder(metaclass=ABCMeta):
 
 
 class BehaviorDataBuilder:
+    DTYPE = {
+        COL_USER_ID: np.int32,
+        COL_ITEM_ID: np.int32,
+        COL_ITEM_VALUE: np.float32,
+        COL_TIMESTAMP: np.int32,
+    }
+
     def __init__(
         self,
         data_dir: Path,
@@ -48,7 +57,6 @@ class BehaviorDataBuilder:
         log_end: datetime,
         test_log_start: datetime | None = None,
         num_items: int = 20000,
-        rating_scale: int = 10,
     ):
         self.data_dir = data_dir
         self.save_dir = save_dir
@@ -62,13 +70,12 @@ class BehaviorDataBuilder:
         )
 
         self.num_items = num_items
-        self.rating_scale = rating_scale
 
         self.raw_data: pd.DataFrame | None = None
         self.item_tokenizer: dict[int, int] | None = None
 
     def collect(self):
-        self.raw_data = pd.read_csv(self.data_dir / RAW_FILE).sort_values(
+        self.raw_data = pd.read_csv(self.data_dir / RAW_FILE, dtype=self.DTYPE).sort_values(
             by=[COL_USER_ID, COL_TIMESTAMP], ignore_index=True
         )
 
