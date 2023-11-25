@@ -35,7 +35,7 @@ class UserEncoder(BertPreTrainedModel, ABC):
         self,
         item_ids: torch.LongTensor,
         rating_values: torch.LongTensor,
-        attention_mask: Optional[torch.LongTensor] = None,
+        attention_mask: torch.LongTensor | None = None,
     ):
         return self.extract_user_embeddings(item_ids, rating_values, attention_mask)
 
@@ -43,7 +43,7 @@ class UserEncoder(BertPreTrainedModel, ABC):
         self,
         item_ids: torch.LongTensor,
         rating_values: torch.LongTensor,
-        position_indices: Optional[torch.LongTensor] = None,
+        position_indices: torch.LongTensor | None = None,
     ):
         return self.behavior_encoder(item_ids, rating_values, position_indices)
 
@@ -51,7 +51,7 @@ class UserEncoder(BertPreTrainedModel, ABC):
         self,
         item_ids: torch.LongTensor,
         rating_values: torch.LongTensor,
-        attention_mask: Optional[torch.LongTensor] = None,
+        attention_mask: torch.LongTensor | None = None,
     ):
         input_shape = item_ids.size()
         device = item_ids.device
@@ -59,12 +59,8 @@ class UserEncoder(BertPreTrainedModel, ABC):
         if attention_mask is None:
             attention_mask = torch.ones(input_shape, device=device)
 
-        extended_attention_mask: torch.Tensor = self.get_extended_attention_mask(
-            attention_mask, input_shape
-        )
-        head_mask: torch.Tensor = self.get_head_mask(
-            None, self.config.num_hidden_layers
-        )
+        extended_attention_mask: torch.Tensor = self.get_extended_attention_mask(attention_mask, input_shape)
+        head_mask: torch.Tensor = self.get_head_mask(None, self.config.num_hidden_layers)
 
         behavior_embeddings = self.extract_behavior_embeddings(item_ids, rating_values)
         context_embeddings = self.behavior_context_encoder(
@@ -78,11 +74,9 @@ class UserEncoder(BertPreTrainedModel, ABC):
         self,
         item_ids: torch.LongTensor,
         rating_values: torch.LongTensor,
-        attention_mask: Optional[torch.LongTensor] = None,
+        attention_mask: torch.LongTensor | None = None,
     ):
-        context_embeddings = self.extract_behavior_context_embeddings(
-            item_ids, rating_values, attention_mask
-        )
+        context_embeddings = self.extract_behavior_context_embeddings(item_ids, rating_values, attention_mask)
         user_embeddings = context_embeddings[:, 0, :]  # [CLS]
         return user_embeddings
 
@@ -95,12 +89,10 @@ class BehaviorContextEncoder(nn.Module):
     def forward(
         self,
         behavior_embeddings: torch.Tensor,
-        attention_mask: Optional[torch.LongTensor] = None,
+        attention_mask: torch.LongTensor | None = None,
         head_mask: Optional[torch.FloatTensor] = None,
     ) -> torch.Tensor:
-        encoder_outputs = self.encoder(
-            behavior_embeddings, attention_mask, head_mask=head_mask, return_dict=False
-        )
+        encoder_outputs = self.encoder(behavior_embeddings, attention_mask, head_mask=head_mask, return_dict=False)
         context_embeddings = encoder_outputs[0]
         return context_embeddings
 
@@ -123,30 +115,20 @@ class BehaviorEmbedding(nn.Module):
             padding_idx=config.pad_token_id,
         )
 
-        self.position_embeddings = nn.Embedding(
-            config.max_position_embeddings, config.hidden_size
-        )
+        self.position_embeddings = nn.Embedding(config.max_position_embeddings, config.hidden_size)
         self.layer_norm = nn.LayerNorm(config.hidden_size, eps=config.layer_norm_eps)
         self.dropout = nn.Dropout(config.hidden_dropout_prob)
 
-        self.register_buffer(
-            "position_ids", torch.arange(config.max_position_embeddings).expand((1, -1))
-        )
+        self.register_buffer("position_ids", torch.arange(config.max_position_embeddings).expand((1, -1)))
 
     def forward(
         self,
         item_ids: torch.LongTensor,
         rating_values: torch.LongTensor,
-        position_indices: Optional[torch.LongTensor] = None,
+        position_indices: torch.LongTensor | None = None,
     ) -> torch.Tensor:
-        if (
-            position_indices is not None
-            and position_indices.ndim != 2
-            and position_indices.ndim != 0
-        ):
-            raise ValueError(
-                f"ndim of position_indices({position_indices}) should be 2 or 0"
-            )
+        if position_indices is not None and position_indices.ndim != 2 and position_indices.ndim != 0:
+            raise ValueError(f"ndim of position_indices({position_indices}) should be 2 or 0")
 
         seq_length = item_ids.size(1)
         position_ids = (

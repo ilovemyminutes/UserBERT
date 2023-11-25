@@ -44,7 +44,7 @@ class UserBERT(pl.LightningModule):
         self,
         action_types: torch.LongTensor,
         contents: torch.LongTensor,
-        attention_mask: Optional[torch.LongTensor] = None,
+        attention_mask: torch.LongTensor | None = None,
     ) -> torch.Tensor:
         return self.encoder(action_types, contents, attention_mask)  # B x H
 
