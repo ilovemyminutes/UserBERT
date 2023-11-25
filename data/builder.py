@@ -6,6 +6,7 @@ import pandas as pd
 
 from data.utils import (
     RAW_FILE,
+    COL_USER_ID,
     COL_TIMESTAMP,
     COL_ITEM_ID,
     TOKEN_CLS,
@@ -67,7 +68,9 @@ class BehaviorDataBuilder:
         self.item_tokenizer: dict[int, int] | None = None
 
     def collect(self):
-        self.raw_data = pd.read_csv(self.data_dir / RAW_FILE)
+        self.raw_data = pd.read_csv(self.data_dir / RAW_FILE).sort_values(
+            by=[COL_USER_ID, COL_TIMESTAMP], ignore_index=True
+        )
 
     def initialize_tokenizer(self):
         source = self.raw_data[
@@ -84,5 +87,10 @@ class BehaviorDataBuilder:
             }
         )
 
-    def make_dataset(self):
-        return
+    def make_dataset(self, period: tuple[datetime, datetime] | None):
+        source = self.raw_data[
+            (period[0].timestamp() <= self.raw_data[COL_TIMESTAMP])
+            & (self.raw_data[COL_TIMESTAMP] <= period[1].timestamp())
+            & (self.raw_data[COL_ITEM_ID].isin(self.item_tokenizer))
+        ]
+        return source
