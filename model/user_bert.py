@@ -14,6 +14,7 @@ class UserBERT(pl.LightningModule):
     def __init__(
         self,
         embedding_dim: int,
+        intermediate_embedding_dim: int,
         item_vocab_size: int,
         rating_scale: int = 10,
         num_hidden_layers: int = 8,
@@ -28,7 +29,7 @@ class UserBERT(pl.LightningModule):
     ):
         super().__init__()
         self.embedding_dim = embedding_dim
-        self.encoder = UserEncoder(embedding_dim, item_vocab_size, rating_scale, num_hidden_layers, pad_index, dropout)
+        self.encoder = UserEncoder(embedding_dim, intermediate_embedding_dim, item_vocab_size, rating_scale, num_hidden_layers, pad_index, dropout)
 
         self.train_k = num_train_negative_samples
         self.valid_k = num_valid_negative_samples

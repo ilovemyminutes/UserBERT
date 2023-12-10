@@ -11,6 +11,7 @@ class UserEncoder(BertPreTrainedModel, ABC):
     def __init__(
         self,
         embedding_dim: int,
+        intermediate_embedding_dim: int,
         item_vocab_size: int,
         rating_scale: int,
         num_hidden_layers: int = 8,
@@ -21,6 +22,7 @@ class UserEncoder(BertPreTrainedModel, ABC):
             item_vocab_size=item_vocab_size,
             rating_scale=rating_scale,
             hidden_size=embedding_dim,
+            intermediate_size=intermediate_embedding_dim,
             pad_token_id=pad_index,
             hidden_dropout_prob=dropout,
             num_hidden_layers=num_hidden_layers,
