@@ -1,3 +1,4 @@
+from argparse import Namespace
 from logging import getLogger
 from pathlib import Path
 from typing import Optional
@@ -25,7 +26,7 @@ logger = getLogger(__name__)
 
 
 class PretrainDataModule(pl.LightningDataModule):
-    def __init__(self, config):
+    def __init__(self, config: Namespace):
         super().__init__()
         self.config = config
 
