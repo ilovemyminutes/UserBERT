@@ -1,3 +1,6 @@
+import pickle
+from pathlib import Path
+
 RAW_FILE = "ratings.csv"
 
 COL_USER_ID = "userId"
@@ -12,3 +15,13 @@ TOKEN_CLS = "[CLS]"
 TRAIN_DIR = "train"
 VALID_DIR = "valid"
 TEST_DIR = "test"
+
+
+def dump_pickle(fpath: str | Path, data: object, protocol: int = pickle.DEFAULT_PROTOCOL, **kwargs):
+    with open(fpath, "wb") as f:
+        pickle.dump(data, f, protocol=protocol, **kwargs)
+
+
+def load_pickle(fpath: str | Path, **kwargs) -> object:
+    with open(fpath, "rb") as f:
+        return pickle.load(f, **kwargs)
