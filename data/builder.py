@@ -117,10 +117,12 @@ class BehaviorDataBuilder(DataBuilder):
         spec = {
             "version": self.version,
             "train_period": f"{self.train_period[0].strftime('%Y-%m-%d %H:%M:%S')} ~ {self.train_period[1].strftime('%Y-%m-%d %H:%M:%S')}",
-            "test_period": "" if self.test_period is None else f"{self.test_period[0].strftime('%Y-%m-%d %H:%M:%S')} ~ {self.test_period[1].strftime('%Y-%m-%d %H:%M:%S')}",
+            "test_period": ""
+            if self.test_period is None
+            else f"{self.test_period[0].strftime('%Y-%m-%d %H:%M:%S')} ~ {self.test_period[1].strftime('%Y-%m-%d %H:%M:%S')}",
             "item_vocab_size": len(self.item_tokenizer),
             "value_vocab_size": len(self.value_tokenizer),
-            "num_special_tokens": len(SPECIAL_TOKENS)
+            "num_special_tokens": len(SPECIAL_TOKENS),
         }
         dump_json(self.save_dir / DATA_SPEC_FILE, spec)
         with open(self.save_dir / PREPARED_FLAG, "w"):

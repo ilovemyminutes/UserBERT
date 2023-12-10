@@ -63,7 +63,7 @@ def dump_pickle(fpath: str | Path, data: object, protocol: int = pickle.DEFAULT_
         pickle.dump(data, f, protocol=protocol, **kwargs)
 
 
-def load_pickle(fpath: str | Path, **kwargs) -> object:
+def load_pickle(fpath: str | Path, **kwargs):
     with open(fpath, "rb") as f:
         return pickle.load(f, **kwargs)
 
@@ -76,6 +76,6 @@ def dump_json(fpath: str | Path, data: object, **kwargs):
             json.dump(data, fp=f, **kwargs)
 
 
-def load_json(fpath: str | Path, **kwargs) -> object:
+def load_json(fpath: str | Path, **kwargs):
     with open(fpath) as f:
         return json.load(f, **kwargs)
