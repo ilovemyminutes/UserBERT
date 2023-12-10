@@ -15,11 +15,14 @@ from data.utils import (
     COL_TIMESTAMP,
     COL_ITEM_VALUE,
     COL_ITEM_ID,
+    TEST_DIR,
     TOKEN_CLS,
     TOKEN_PAD,
     TOKEN_MASK,
     TRAIN_DIR,
-    TEST_DIR,
+    ITEM_TOKENIZER_FILE,
+    VALUE_TOKENIZER_FILE,
+    dump_pickle
 )
 
 USER_FILE = "users.txt"
@@ -111,7 +114,7 @@ class BehaviorDataBuilder(DataBuilder):
     def _build_dataset(self, period: tuple[datetime, datetime] | None, save_dir: Path):
         save_dir.mkdir(exist_ok=True, parents=True)
 
-        ray.init(num_cpus=4, runtime_env={"working_dir": "./"})
+        ray.init(num_cpus=4, runtime_env={"working_dir": Path(__file__).absolute().parent.parent})
         source = self.raw_data[
             (period[0].timestamp() <= self.raw_data[COL_TIMESTAMP])
             & (self.raw_data[COL_TIMESTAMP] <= period[1].timestamp())
@@ -148,6 +151,7 @@ class BehaviorDataBuilder(DataBuilder):
                 )
             }
         )
+        dump_pickle(self.save_dir / ITEM_TOKENIZER_FILE, self.item_tokenizer)
 
     def _initialize_value_tokenizer(self):
         self.value_tokenizer = {TOKEN_PAD: 0, TOKEN_MASK: 1, TOKEN_CLS: 2}
@@ -157,6 +161,7 @@ class BehaviorDataBuilder(DataBuilder):
                 for i, value in enumerate(range(1, self.rating_scale + 1), start=len(self.value_tokenizer))
             }
         )
+        dump_pickle(self.save_dir / VALUE_TOKENIZER_FILE, self.value_tokenizer)
 
     @staticmethod
     def _split_user_pool(user_pool: set[int], n_splits: int) -> list[set[int]]:

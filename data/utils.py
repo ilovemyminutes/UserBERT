@@ -2,6 +2,8 @@ import pickle
 from pathlib import Path
 
 RAW_FILE = "ratings.csv"
+ITEM_TOKENIZER_FILE = "item_tokenizer.pkl"
+VALUE_TOKENIZER_FILE = "value_tokenizer.pkl"
 
 COL_USER_ID = "userId"
 COL_ITEM_ID = "movieId"
