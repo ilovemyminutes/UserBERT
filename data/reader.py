@@ -19,7 +19,7 @@ class BehaviorDataReader:
         self.ts_path = str(data_dir / TIMESTAMPS_FILE)
 
         self.lineno_by_user: Optional[dict[int, int]] = None
-        self.update_cache()
+        self._update_cache()
 
     def read(self, index: int | None = None, user_id: int | None = None) -> tuple[int, list[np.ndarray]]:
         if index is not None:
@@ -50,7 +50,7 @@ class BehaviorDataReader:
     def size(self) -> int:
         return len(self.lineno_by_user)
 
-    def update_cache(self) -> None:
+    def _update_cache(self) -> None:
         linecache.updatecache(self.us_path)
         linecache.updatecache(self.it_path)
         linecache.updatecache(self.vl_path)
