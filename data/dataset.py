@@ -5,7 +5,7 @@ from torch.utils.data import Dataset
 
 from data.reader import BehaviorDataReader
 from data.preprocessing import (
-    mask_behavior_sequence_by_contents,
+    mask_behavior_sequence_by_items,
     pack_behavior_sequence,
     sample_behavior_sequence_pair,
     sample_single_behavior_sequence,
@@ -19,7 +19,6 @@ class PretrainDataset(Dataset, BehaviorDataReader):
         user_pool: set[int] | None = None,
         bsm_seq_len: int = 200,
         mbp_seq_len: int = 400,
-        lbp_seq_len: int = 200,
         pad_index: int = 0,
         mask_index: int = 1,
         cls_index: int = 2,
@@ -30,7 +29,6 @@ class PretrainDataset(Dataset, BehaviorDataReader):
 
         self.bsm_seq_len = bsm_seq_len
         self.mbp_seq_len = mbp_seq_len
-        self.lbp_seq_len = lbp_seq_len
 
         self.pad_idx = pad_index
         self.mask_idx = mask_index
@@ -69,8 +67,8 @@ class PretrainDataset(Dataset, BehaviorDataReader):
             pad_index=self.pad_idx,
             no_attention_mask=True,
         )
-        packed_masked_seq, true_behaviors, masked_pos_indices = mask_behavior_sequence_by_contents(
-            packed_seq_m, mask_index=self.mask_idx, num_mask_contents=self.num_masks, no_mask_at={0}
+        packed_masked_seq, true_behaviors, masked_pos_indices = mask_behavior_sequence_by_items(
+            packed_seq_m, mask_index=self.mask_idx, num_mask_items=self.num_masks, no_mask_at={0}
         )
 
         batch_mbp = (
