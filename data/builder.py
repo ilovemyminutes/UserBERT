@@ -14,10 +14,8 @@ from data.utils import (
     COL_TIMESTAMP,
     COL_ITEM_VALUE,
     COL_ITEM_ID,
+    SPECIAL_TOKENS,
     TEST_DIR,
-    TOKEN_CLS,
-    TOKEN_PAD,
-    TOKEN_MASK,
     TRAIN_DIR,
     ITEM_TOKENIZER_FILE,
     VALUE_TOKENIZER_FILE,
@@ -113,6 +111,14 @@ class BehaviorDataBuilder(DataBuilder):
             self._build_dataset(self.test_period, self.save_dir / TEST_DIR)
 
     def finalize(self):
+        spec = {
+            "version": self.version,
+            "train_period": f"{self.train_period[0].strftime('%Y-%m-%d %H:%M:%S')} ~ {self.train_period[1].strftime('%Y-%m-%d %H:%M:%S')}",
+            "test_period": "" if self.test_period is None else f"{self.test_period[0].strftime('%Y-%m-%d %H:%M:%S')} ~ {self.test_period[1].strftime('%Y-%m-%d %H:%M:%S')}",
+            "item_vocab_size": len(self.item_tokenizer),
+            "value_vocab_size": len(self.value_tokenizer),
+            "num_special_tokens": len(SPECIAL_TOKENS)
+        }
         return
 
     def _build_dataset(self, period: tuple[datetime, datetime] | None, save_dir: Path):
@@ -143,7 +149,7 @@ class BehaviorDataBuilder(DataBuilder):
         if self.pretrained_tokenizer_dir is not None and (self.pretrained_tokenizer_dir / ITEM_TOKENIZER_FILE).exists():
             self.item_tokenizer = load_pickle(self.pretrained_tokenizer_dir / ITEM_TOKENIZER_FILE)
         else:
-            self.item_tokenizer = {TOKEN_PAD: 0, TOKEN_MASK: 1, TOKEN_CLS: 2}
+            self.item_tokenizer = {tok: i for i, tok in enumerate(SPECIAL_TOKENS)}
             source = self.raw_data[
                 (self.train_period[0].timestamp() <= self.raw_data[COL_TIMESTAMP])
                 & (self.raw_data[COL_TIMESTAMP] <= self.train_period[1].timestamp())
@@ -165,7 +171,7 @@ class BehaviorDataBuilder(DataBuilder):
         ):
             self.value_tokenizer = load_pickle(self.pretrained_tokenizer_dir / VALUE_TOKENIZER_FILE)
         else:
-            self.value_tokenizer = {TOKEN_PAD: 0, TOKEN_MASK: 1, TOKEN_CLS: 2}
+            self.value_tokenizer = {tok: i for i, tok in enumerate(SPECIAL_TOKENS)}
             self.value_tokenizer.update(
                 {
                     float(value / 2) if self.rating_scale == 10 else value: i
