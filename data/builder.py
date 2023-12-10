@@ -22,7 +22,8 @@ from data.utils import (
     TRAIN_DIR,
     ITEM_TOKENIZER_FILE,
     VALUE_TOKENIZER_FILE,
-    dump_pickle
+    dump_pickle,
+    load_pickle,
 )
 
 USER_FILE = "users.txt"
@@ -57,7 +58,7 @@ class DataBuilder(metaclass=ABCMeta):
 
 
 class BehaviorDataBuilder(DataBuilder):
-    DTYPE = {
+    DATA_TYPE = {
         COL_USER_ID: np.int32,
         COL_ITEM_ID: np.int32,
         COL_ITEM_VALUE: np.float32,
@@ -73,10 +74,16 @@ class BehaviorDataBuilder(DataBuilder):
         test_log_start: datetime | None = None,
         num_items: int = 20000,
         rating_scale: int = 10,
+        pretrained_tokenizer_dir: Path | None = None,
         n_jobs: int = 4,
     ):
+        self.version = datetime.now().strftime("%Y%m%d%H%M%S")
         self.data_dir = data_dir
-        self.save_dir = save_dir
+        self.save_dir = save_dir / self.version
+        self.num_items = num_items
+        self.rating_scale = rating_scale
+        self.pretrained_tokenizer_dir = pretrained_tokenizer_dir
+        self.n_jobs = n_jobs
 
         self.train_period: tuple[datetime, datetime] = (
             log_start,
@@ -86,16 +93,12 @@ class BehaviorDataBuilder(DataBuilder):
             (test_log_start, log_end) if test_log_start is not None else None
         )
 
-        self.num_items = num_items
-        self.rating_scale = rating_scale
-        self.n_jobs = n_jobs
-
         self.raw_data: pd.DataFrame | None = None
         self.item_tokenizer: dict[int, int] | None = None
         self.value_tokenizer: dict[float, int] | None = None
 
     def collect(self):
-        self.raw_data = pd.read_csv(self.data_dir / RAW_FILE, dtype=self.DTYPE).sort_values(
+        self.raw_data = pd.read_csv(self.data_dir / RAW_FILE, dtype=self.DATA_TYPE).sort_values(
             by=[COL_USER_ID, COL_TIMESTAMP], ignore_index=True
         )
 
@@ -138,29 +141,35 @@ class BehaviorDataBuilder(DataBuilder):
         self._merge_partitioned_datasets(partition_dirs, save_dir)
 
     def _initialize_item_tokenizer(self):
-        self.item_tokenizer = {TOKEN_PAD: 0, TOKEN_MASK: 1, TOKEN_CLS: 2}
-        source = self.raw_data[
-            (self.train_period[0].timestamp() <= self.raw_data[COL_TIMESTAMP])
-            & (self.raw_data[COL_TIMESTAMP] <= self.train_period[1].timestamp())
-        ]
-        self.item_tokenizer.update(
-            {
-                item_id: i
-                for i, item_id in enumerate(
-                    source[COL_ITEM_ID].value_counts().head(self.num_items).index, start=len(self.item_tokenizer)
-                )
-            }
-        )
+        if (self.pretrained_tokenizer_dir / ITEM_TOKENIZER_FILE).exists():
+            self.item_tokenizer = load_pickle(self.pretrained_tokenizer_dir / ITEM_TOKENIZER_FILE)
+        else:
+            self.item_tokenizer = {TOKEN_PAD: 0, TOKEN_MASK: 1, TOKEN_CLS: 2}
+            source = self.raw_data[
+                (self.train_period[0].timestamp() <= self.raw_data[COL_TIMESTAMP])
+                & (self.raw_data[COL_TIMESTAMP] <= self.train_period[1].timestamp())
+            ]
+            self.item_tokenizer.update(
+                {
+                    item_id: i
+                    for i, item_id in enumerate(
+                        source[COL_ITEM_ID].value_counts().head(self.num_items).index, start=len(self.item_tokenizer)
+                    )
+                }
+            )
         dump_pickle(self.save_dir / ITEM_TOKENIZER_FILE, self.item_tokenizer)
 
     def _initialize_value_tokenizer(self):
-        self.value_tokenizer = {TOKEN_PAD: 0, TOKEN_MASK: 1, TOKEN_CLS: 2}
-        self.value_tokenizer.update(
-            {
-                float(value / 2) if self.rating_scale == 10 else value: i
-                for i, value in enumerate(range(1, self.rating_scale + 1), start=len(self.value_tokenizer))
-            }
-        )
+        if (self.pretrained_tokenizer_dir / VALUE_TOKENIZER_FILE).exists():
+            self.value_tokenizer = load_pickle(self.pretrained_tokenizer_dir / VALUE_TOKENIZER_FILE)
+        else:
+            self.value_tokenizer = {TOKEN_PAD: 0, TOKEN_MASK: 1, TOKEN_CLS: 2}
+            self.value_tokenizer.update(
+                {
+                    float(value / 2) if self.rating_scale == 10 else value: i
+                    for i, value in enumerate(range(1, self.rating_scale + 1), start=len(self.value_tokenizer))
+                }
+            )
         dump_pickle(self.save_dir / VALUE_TOKENIZER_FILE, self.value_tokenizer)
 
     @staticmethod
