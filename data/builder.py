@@ -15,6 +15,7 @@ from data.utils import (
     COL_ITEM_ID,
     DATA_SPEC_FILE,
     ITEM_TOKENIZER_FILE,
+    PREPARED_FLAG,
     RAW_FILE,
     SPECIAL_TOKENS,
     TEST_DIR,
@@ -122,6 +123,8 @@ class BehaviorDataBuilder(DataBuilder):
             "num_special_tokens": len(SPECIAL_TOKENS)
         }
         dump_json(self.save_dir / DATA_SPEC_FILE, spec)
+        with open(self.save_dir / PREPARED_FLAG, "w"):
+            pass
 
     def _build_dataset(self, period: tuple[datetime, datetime] | None, save_dir: Path):
         save_dir.mkdir(exist_ok=True, parents=True)
