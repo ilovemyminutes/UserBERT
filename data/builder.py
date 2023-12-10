@@ -77,13 +77,15 @@ class BehaviorDataBuilder(DataBuilder):
         pretrained_tokenizer_dir: Path | None = None,
         n_jobs: int = 4,
     ):
-        self.version = datetime.now().strftime("%Y%m%d%H%M%S")
         self.data_dir = data_dir
-        self.save_dir = save_dir / self.version
         self.num_items = num_items
         self.rating_scale = rating_scale
         self.pretrained_tokenizer_dir = pretrained_tokenizer_dir
         self.n_jobs = n_jobs
+
+        self.version: str = datetime.now().strftime("%Y%m%d%H%M")
+        self.save_dir = save_dir / self.version
+        self.save_dir.mkdir(exist_ok=True, parents=True)
 
         self.train_period: tuple[datetime, datetime] = (
             log_start,
@@ -130,10 +132,10 @@ class BehaviorDataBuilder(DataBuilder):
 
         futures = [
             self._build_dataset_by_one_process.remote(
-                source_ref, split_user_pool, item_tokenizer_ref, value_tokenizer_ref, save_dir / f"{job_id}"
+                source_ref, set(split_user_pool), item_tokenizer_ref, value_tokenizer_ref, save_dir / f"{job_id}"
             )
             for job_id, split_user_pool in enumerate(
-                self._split_user_pool(set(source[COL_USER_ID]), n_splits=self.n_jobs)
+                np.array_split(sorted(source[COL_USER_ID].unique()), self.n_jobs)
             )
         ]
         partition_dirs = ray.get(futures)
@@ -174,13 +176,6 @@ class BehaviorDataBuilder(DataBuilder):
                 }
             )
         dump_pickle(self.save_dir / VALUE_TOKENIZER_FILE, self.value_tokenizer)
-
-    @staticmethod
-    def _split_user_pool(user_pool: set[int], n_splits: int) -> list[set[int]]:
-        user_list = list(user_pool)
-        subset_size = math.ceil(len(user_pool) / n_splits)
-        splits = [set(user_list[k * subset_size : (k + 1) * subset_size]) for k in range(n_splits)]
-        return splits
 
     @staticmethod
     @ray.remote
