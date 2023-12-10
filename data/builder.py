@@ -1,4 +1,3 @@
-import math
 import shutil
 from abc import abstractmethod, ABCMeta
 from datetime import datetime, timedelta
@@ -134,9 +133,7 @@ class BehaviorDataBuilder(DataBuilder):
             self._build_dataset_by_one_process.remote(
                 source_ref, set(split_user_pool), item_tokenizer_ref, value_tokenizer_ref, save_dir / f"{job_id}"
             )
-            for job_id, split_user_pool in enumerate(
-                np.array_split(sorted(source[COL_USER_ID].unique()), self.n_jobs)
-            )
+            for job_id, split_user_pool in enumerate(np.array_split(sorted(source[COL_USER_ID].unique()), self.n_jobs))
         ]
         partition_dirs = ray.get(futures)
         ray.shutdown()
