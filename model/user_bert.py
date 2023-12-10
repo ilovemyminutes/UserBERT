@@ -1,5 +1,3 @@
-from typing import Optional
-
 import pytorch_lightning as pl
 from pytorch_optimizer import get_optimizer_parameters
 import torch
@@ -29,7 +27,15 @@ class UserBERT(pl.LightningModule):
     ):
         super().__init__()
         self.embedding_dim = embedding_dim
-        self.encoder = UserEncoder(embedding_dim, intermediate_embedding_dim, item_vocab_size, rating_scale, num_hidden_layers, pad_index, dropout)
+        self.encoder = UserEncoder(
+            embedding_dim,
+            intermediate_embedding_dim,
+            item_vocab_size,
+            rating_scale,
+            num_hidden_layers,
+            pad_index,
+            dropout,
+        )
 
         self.train_k = num_train_negative_samples
         self.valid_k = num_valid_negative_samples
