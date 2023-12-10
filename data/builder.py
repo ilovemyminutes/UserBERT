@@ -9,18 +9,20 @@ import ray
 from tqdm import tqdm
 
 from data.utils import (
-    RAW_FILE,
     COL_USER_ID,
     COL_TIMESTAMP,
     COL_ITEM_VALUE,
     COL_ITEM_ID,
+    DATA_SPEC_FILE,
+    ITEM_TOKENIZER_FILE,
+    RAW_FILE,
     SPECIAL_TOKENS,
     TEST_DIR,
     TRAIN_DIR,
-    ITEM_TOKENIZER_FILE,
     VALUE_TOKENIZER_FILE,
     dump_pickle,
     load_pickle,
+    dump_json,
 )
 
 USER_FILE = "users.txt"
@@ -119,7 +121,7 @@ class BehaviorDataBuilder(DataBuilder):
             "value_vocab_size": len(self.value_tokenizer),
             "num_special_tokens": len(SPECIAL_TOKENS)
         }
-        return
+        dump_json(self.save_dir / DATA_SPEC_FILE, spec)
 
     def _build_dataset(self, period: tuple[datetime, datetime] | None, save_dir: Path):
         save_dir.mkdir(exist_ok=True, parents=True)
