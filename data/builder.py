@@ -141,7 +141,7 @@ class BehaviorDataBuilder(DataBuilder):
         self._merge_partitioned_datasets(partition_dirs, save_dir)
 
     def _initialize_item_tokenizer(self):
-        if (self.pretrained_tokenizer_dir / ITEM_TOKENIZER_FILE).exists():
+        if self.pretrained_tokenizer_dir is not None and (self.pretrained_tokenizer_dir / ITEM_TOKENIZER_FILE).exists():
             self.item_tokenizer = load_pickle(self.pretrained_tokenizer_dir / ITEM_TOKENIZER_FILE)
         else:
             self.item_tokenizer = {TOKEN_PAD: 0, TOKEN_MASK: 1, TOKEN_CLS: 2}
@@ -160,7 +160,10 @@ class BehaviorDataBuilder(DataBuilder):
         dump_pickle(self.save_dir / ITEM_TOKENIZER_FILE, self.item_tokenizer)
 
     def _initialize_value_tokenizer(self):
-        if (self.pretrained_tokenizer_dir / VALUE_TOKENIZER_FILE).exists():
+        if (
+            self.pretrained_tokenizer_dir is not None
+            and (self.pretrained_tokenizer_dir / VALUE_TOKENIZER_FILE).exists()
+        ):
             self.value_tokenizer = load_pickle(self.pretrained_tokenizer_dir / VALUE_TOKENIZER_FILE)
         else:
             self.value_tokenizer = {TOKEN_PAD: 0, TOKEN_MASK: 1, TOKEN_CLS: 2}
