@@ -1,4 +1,9 @@
+from __future__ import annotations
+
 from dataclasses import dataclass
+from pathlib import Path
+
+from data.utils import dump_json, load_json
 
 
 @dataclass
@@ -16,3 +21,14 @@ class UserBERTConfig:
     temperature: float = 1.0
     lr: float = 1e-4
     weight_decay: float = 1e-2
+
+    @classmethod
+    def from_dict(cls, params: dict) -> UserBERTConfig:
+        return UserBERTConfig(**params)
+
+    @classmethod
+    def from_json_file(cls, fpath: Path | str) -> UserBERTConfig:
+        return UserBERTConfig(load_json(fpath))
+
+    def to_json(self, fpath: Path | str):
+        dump_json(fpath, self.__dict__)
