@@ -6,24 +6,18 @@ from torch import nn
 from transformers import BertConfig, BertPreTrainedModel
 from transformers.models.bert.modeling_bert import BertEncoder
 
+from model.config import UserBERTConfig
+
 
 class UserEncoder(BertPreTrainedModel, ABC):
-    def __init__(
-        self,
-        embedding_dim: int,
-        item_vocab_size: int,
-        rating_scale: int,
-        num_hidden_layers: int = 8,
-        pad_index: int = 0,
-        dropout: float = 0.1,
-    ):
+    def __init__(self, config: UserBERTConfig):
         config = BertConfig(
-            item_vocab_size=item_vocab_size,
-            rating_scale=rating_scale,
-            hidden_size=embedding_dim,
-            pad_token_id=pad_index,
-            hidden_dropout_prob=dropout,
-            num_hidden_layers=num_hidden_layers,
+            hidden_size=config.embedding_dim,
+            num_hidden_layers=config.num_hidden_layers,
+            pad_token_id=config.pad_index,
+            hidden_dropout_prob=config.dropout,
+            item_vocab_size=config.item_vocab_size,
+            value_vocab_size=config.value_vocab_size,
         )
         super().__init__(config)
         self.config = config
@@ -104,8 +98,8 @@ class BehaviorEmbedding(nn.Module):
 
     def __init__(self, config: BertConfig):
         super().__init__()
-        self.rating_embeddings = nn.Embedding(
-            config.rating_scale + 1,
+        self.value_embeddings = nn.Embedding(
+            config.value_vocab_size + 1,
             config.hidden_size // 2,
             padding_idx=config.pad_token_id,
         )
@@ -137,8 +131,8 @@ class BehaviorEmbedding(nn.Module):
             else self.position_ids[:, position_indices].squeeze(dim=0)
         )
         item_embedding = self.item_embeddings(item_ids)
-        rating_embedding = self.rating_embeddings(rating_values)
-        embeddings = torch.cat([item_embedding, rating_embedding], dim=-1)
+        value_embedding = self.value_embeddings(rating_values)
+        embeddings = torch.cat([item_embedding, value_embedding], dim=-1)
 
         position_embeddings = self.position_embeddings(position_ids)
         embeddings += position_embeddings

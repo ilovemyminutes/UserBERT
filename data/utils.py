@@ -23,12 +23,10 @@ VALID_DIR = "valid"
 TEST_DIR = "test"
 
 MODEL_DIR = "model"
-PARAM_FILE = "params.pkl"
+MODEL_CONFIG_FILE = "model_config.json"
 
 
-def get_version(
-    version: str, user_bert_dir: Path, check_model_ready: bool = False, verbose: bool = True
-) -> tuple[str, Path]:
+def get_version_info(version: str, user_bert_dir: Path, check_model_ready: bool = False) -> tuple[str, Path]:
     version_dir: Path | None = None
     if version == "latest":
         for path in sorted(user_bert_dir.glob("*[0-9]"), reverse=True):
@@ -47,14 +45,6 @@ def get_version(
 
     if version_dir is None:
         raise ValueError(f"version {version} does not exist or is not prepared completely")
-
-    if verbose:
-        logger.info(
-            f"version: {version} ({version_dir})\n"
-            f"  * pre-trained weights: {(version_dir / MODEL_DIR / PREPARED_FLAG).exists()}"
-        )
-        for k, v in load_data(version_dir / DATA_SPEC_FILE).items():
-            logger.info(f"  * {k}: {v}")
     return version, version_dir
 
 
@@ -73,9 +63,9 @@ def dump_json(fpath: str | Path, data: object, **kwargs):
         if isinstance(data, str):
             f.write(data)
         else:
-            json.dump(data, fp=f, **kwargs)
+            json.dump(data, fp=f, indent=4, **kwargs)
 
 
-def load_json(fpath: str | Path, **kwargs):
+def load_json(fpath: str | Path, **kwargs) -> dict:
     with open(fpath) as f:
         return json.load(f, **kwargs)

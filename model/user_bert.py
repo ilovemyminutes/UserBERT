@@ -5,42 +5,22 @@ from torch import nn
 from torch.optim import AdamW, Optimizer
 from torch.optim.lr_scheduler import OneCycleLR
 
+from model.config import UserBERTConfig
 from model.user_encoder import UserEncoder
 
 
 class UserBERT(pl.LightningModule):
-    def __init__(
-        self,
-        embedding_dim: int,
-        item_vocab_size: int,
-        rating_scale: int = 10,
-        num_hidden_layers: int = 8,
-        num_train_negative_samples: int = 4,
-        num_valid_negative_samples: int = 4,
-        pad_index: int = 0,
-        mask_index: int = 1,
-        dropout: float = 0.1,
-        temperature: float = 1.0,
-        lr: float = 1e-5,
-        weight_decay: float = 1e-2,
-    ):
+    def __init__(self, config: UserBERTConfig):
         super().__init__()
-        self.embedding_dim = embedding_dim
-        self.encoder = UserEncoder(
-            embedding_dim,
-            item_vocab_size,
-            rating_scale,
-            num_hidden_layers,
-            pad_index,
-            dropout,
-        )
+        self.embedding_dim = config.embedding_dim
+        self.encoder = UserEncoder(config)
 
-        self.train_k = num_train_negative_samples
-        self.valid_k = num_valid_negative_samples
-        self.mask_index = mask_index
-        self.t = temperature
-        self.lr = lr
-        self.weight_decay = weight_decay
+        self.train_k = config.num_train_negative_samples
+        self.valid_k = config.num_valid_negative_samples
+        self.mask_index = config.mask_index
+        self.t = config.temperature
+        self.lr = config.lr
+        self.weight_decay = config.weight_decay
         self.loss_fn = nn.CrossEntropyLoss()
 
         self.evaluation_step_outputs: list[tuple[torch.Tensor, ...]] = []

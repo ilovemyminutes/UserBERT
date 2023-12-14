@@ -21,9 +21,9 @@ from data.utils import (
     TEST_DIR,
     TRAIN_DIR,
     VALUE_TOKENIZER_FILE,
+    dump_json,
     dump_pickle,
     load_pickle,
-    dump_json,
 )
 
 USER_FILE = "users.txt"

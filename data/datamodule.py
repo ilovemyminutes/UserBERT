@@ -13,14 +13,15 @@ from data.utils import (
     ITEM_TOKENIZER_FILE,
     VALUE_TOKENIZER_FILE,
     MODEL_DIR,
-    PARAM_FILE,
+    MODEL_CONFIG_FILE,
     TOKEN_CLS,
     TOKEN_MASK,
     TOKEN_PAD,
     TRAIN_DIR,
-    get_version,
+    get_version_info,
 )
-from data.utils import dump_pickle, load_pickle
+from data.utils import load_json
+from model.config import UserBERTConfig
 
 logger = getLogger(__name__)
 
@@ -30,52 +31,44 @@ class PretrainDataModule(pl.LightningDataModule):
         super().__init__()
         self.config = config
 
-        self.version: str | None = None
         self.data_dir: Path | None = None
         self.num_users: int | None = None
 
         self.item_tokenizer: dict[str, int] | None = None
         self.value_tokenizer: dict[str, int] | None = None
+        self.model_config: UserBERTConfig | None = None
 
         self.train_user_pool: set[int] | None = None
         self.valid_user_pool: set[int] | None = None
+
         self.train_dataset: PretrainDataset | None = None
         self.valid_dataset: PretrainDataset | None = None
 
     def prepare_data(self):
-        _, data_dir = get_version(version=self.config.version, user_bert_dir=self.config.user_bert_dir, verbose=False)
-        if not (data_dir / MODEL_DIR / PARAM_FILE).exists():
-            (data_dir / MODEL_DIR).mkdir(exist_ok=True)
-            item_tokenizer = load_pickle(data_dir / ITEM_TOKENIZER_FILE)
-            item_vocab_size = len(item_tokenizer)
-            value_vocab_size = len(load_pickle(data_dir / VALUE_TOKENIZER_FILE))
-            pad_index = item_tokenizer[TOKEN_PAD]
-            mask_index = item_tokenizer[TOKEN_MASK]
-            model_params = dict(
+        _, self.data_dir = get_version_info(version="latest", user_bert_dir=self.config.user_bert_dir)
+        if not (self.data_dir / MODEL_DIR / PARAM_FILE).exists():
+            (self.data_dir / MODEL_DIR).mkdir(exist_ok=True)
+            self._load_tokenizers()
+            self.model_config = UserBERTConfig(
                 embedding_dim=self.config.embedding_dim,
-                intermediate_embedding_dim=self.config.intermediate_embedding_dim,
-                item_vocab_size=item_vocab_size,
-                value_vocab_size=value_vocab_size,
+                item_vocab_size=len(self.item_tokenizer),
+                value_vocab_size=len(self.value_tokenizer),
                 num_hidden_layers=self.config.num_hidden_layers,
                 num_train_negative_samples=self.config.num_train_negative_samples,
                 num_valid_negative_samples=self.config.num_valid_negative_samples,
-                pad_index=pad_index,
-                mask_index=mask_index,
+                pad_index=self.item_tokenizer[TOKEN_PAD],
+                mask_index=self.item_tokenizer[TOKEN_MASK],
                 dropout=self.config.dropout,
                 temperature=self.config.temperature,
                 lr=self.config.lr,
                 weight_decay=self.config.weight_decay,
             )
-            dump_pickle(data_dir / MODEL_DIR / PARAM_FILE, model_params)
+            self.model_config.to_json(self.data_dir / MODEL_DIR / MODEL_CONFIG_FILE)
+        else:
+            self._load_tokenizers()
+            self.model_config = UserBERTConfig.from_json(self.data_dir / MODEL_DIR / MODEL_CONFIG_FILE)
 
     def setup(self, stage: Optional[str] = None):
-        self.version, self.data_dir = get_version(
-            version=self.config.version, user_bert_dir=self.config.user_bert_dir, verbose=False
-        )
-
-        self.item_tokenizer = load_pickle(self.data_dir / ITEM_TOKENIZER_FILE)
-        self.value_tokenizer = load_pickle(self.data_dir / VALUE_TOKENIZER_FILE)
-
         self._split_data()
         self.train_dataset = PretrainDataset(
             self.data_dir / TRAIN_DIR,
@@ -107,6 +100,10 @@ class PretrainDataModule(pl.LightningDataModule):
         return DataLoader(
             self.valid_dataset, batch_size=self.config.batch_size, drop_last=True, num_workers=self.config.num_workers
         )
+
+    def _load_tokenizers(self):
+        self.item_tokenizer = load_json(self.data_dir / ITEM_TOKENIZER_FILE)
+        self.value_tokenizer = load_json(self.data_dir / VALUE_TOKENIZER_FILE)
 
     def _split_data(self):
         user_ids = [int(u_id) for u_id in open(self.data_dir / TRAIN_DIR / USER_FILE, "r")]
