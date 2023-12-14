@@ -27,7 +27,7 @@ class UserBERTConfig:
 
     @classmethod
     def from_json(cls, fpath: Path | str) -> UserBERTConfig:
-        return UserBERTConfig(load_json(fpath))
+        return UserBERTConfig(**load_json(fpath))
 
     def to_json(self, fpath: Path | str):
         dump_json(fpath, self.__dict__)
