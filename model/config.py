@@ -10,7 +10,7 @@ from data.utils import dump_json, load_json
 class UserBERTConfig:
     embedding_dim: int = 384
     item_vocab_size: int = 20003
-    value_vocab_size: int = (13,)
+    value_vocab_size: int = 13
     num_hidden_layers: int = 12
     num_train_negative_samples: int = 4
     num_valid_negative_samples: int = 4
