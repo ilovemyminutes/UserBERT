@@ -9,9 +9,8 @@ from data.utils import dump_json, load_json
 @dataclass
 class UserBERTConfig:
     embedding_dim: int = 384
-    intermediate_embedding_dim: int = 384
     item_vocab_size: int = 20003
-    value_vocab_size: int = 13,
+    value_vocab_size: int = (13,)
     num_hidden_layers: int = 12
     num_train_negative_samples: int = 4
     num_valid_negative_samples: int = 4
@@ -27,7 +26,7 @@ class UserBERTConfig:
         return UserBERTConfig(**params)
 
     @classmethod
-    def from_json_file(cls, fpath: Path | str) -> UserBERTConfig:
+    def from_json(cls, fpath: Path | str) -> UserBERTConfig:
         return UserBERTConfig(load_json(fpath))
 
     def to_json(self, fpath: Path | str):
