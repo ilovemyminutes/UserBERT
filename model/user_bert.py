@@ -1,6 +1,10 @@
+from __future__ import annotations
+
+from pathlib import Path
+
 import pytorch_lightning as pl
-from pytorch_optimizer import get_optimizer_parameters
 import torch
+from pytorch_optimizer import get_optimizer_parameters
 from torch import nn
 from torch.optim import AdamW, Optimizer
 from torch.optim.lr_scheduler import OneCycleLR
@@ -290,3 +294,7 @@ class UserBERT(pl.LightningModule):
             neg_u_embs.size(1),
         )  # B x K x H
         return neg_u_embs
+
+    @classmethod
+    def from_config(cls, fpath: Path | str) -> UserBERT:
+        return UserBERT(UserBERTConfig.from_json(fpath))

@@ -23,7 +23,7 @@ VALID_DIR = "valid"
 TEST_DIR = "test"
 
 MODEL_DIR = "model"
-MODEL_CONFIG_FILE = "model_config.json"
+MODEL_CONFIG_FILE = "config.json"
 
 
 def get_version_info(version: str, user_bert_dir: Path, check_model_ready: bool = False) -> tuple[str, Path]:
