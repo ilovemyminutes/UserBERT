@@ -16,17 +16,9 @@ from model.user_encoder import UserEncoder
 class UserBERT(pl.LightningModule):
     def __init__(self, config: UserBERTConfig):
         super().__init__()
-        self.embedding_dim = config.embedding_dim
+        self.config = config
         self.encoder = UserEncoder(config)
-
-        self.train_k = config.num_train_negative_samples
-        self.valid_k = config.num_valid_negative_samples
-        self.mask_index = config.mask_index
-        self.t = config.temperature
-        self.lr = config.lr
-        self.weight_decay = config.weight_decay
         self.loss_fn = nn.CrossEntropyLoss()
-
         self.evaluation_step_outputs: list[tuple[torch.Tensor, ...]] = []
 
     def forward(
@@ -47,7 +39,7 @@ class UserBERT(pl.LightningModule):
             _,
             _,
             labels_bsm,
-        ) = self._shared_step(batch, k=self.train_k)
+        ) = self._shared_step(batch, k=self.config.num_train_negative_samples)
         batch_size = len(labels_bsm)
         self.log("train_loss", loss, on_step=True, on_epoch=True, batch_size=batch_size)
         self.log("train_loss_mbp", loss_mbp, on_step=True, on_epoch=True, batch_size=batch_size)
@@ -69,7 +61,7 @@ class UserBERT(pl.LightningModule):
             logits_bsm,
             _,
             _,
-        ) = self._shared_step(batch, k=self.valid_k)
+        ) = self._shared_step(batch, k=self.config.num_valid_negative_samples)
         result = (loss, loss_mbp, loss_bsm, logits_mbp, logits_bsm)
         self.evaluation_step_outputs.append(result)
         return result
@@ -108,12 +100,12 @@ class UserBERT(pl.LightningModule):
         self.evaluation_step_outputs.clear()
 
     def configure_optimizers(self) -> tuple[list[Optimizer], list[dict[str, any]]]:
-        params_to_optimize = get_optimizer_parameters(self, weight_decay=self.weight_decay)
-        optimizer = AdamW(params_to_optimize, lr=self.lr)
+        params_to_optimize = get_optimizer_parameters(self, weight_decay=self.config.weight_decay)
+        optimizer = AdamW(params_to_optimize, lr=self.config.lr)
         scheduler = {
             "scheduler": OneCycleLR(
                 optimizer,
-                max_lr=self.lr,
+                max_lr=self.config.lr,
                 total_steps=self.trainer.estimated_stepping_batches,
             ),
             "interval": "step",
@@ -177,7 +169,7 @@ class UserBERT(pl.LightningModule):
 
         logits = (anchor_embs @ b_embs.transpose(1, 2)).squeeze(dim=1)  # B*M x K+1
         labels = torch.zeros_like(logits[:, 0], dtype=torch.long)  # B*M (NOTE: all pseudo-labels are set as 0)
-        loss = self.loss_fn(logits / self.t, labels)
+        loss = self.loss_fn(logits / self.config.temperature, labels)
         return loss, logits, labels
 
     def _get_behavior_sequence_matching_result(
@@ -203,7 +195,7 @@ class UserBERT(pl.LightningModule):
         u_embs = torch.cat([pos_u_embs.unsqueeze(dim=1), neg_u_embs], dim=1)  # B x K+1 x H
         logits = torch.matmul(anchor_u_embs.unsqueeze(dim=1), u_embs.transpose(1, 2)).squeeze(dim=1)  # B x K+1
         labels = torch.zeros_like(logits[:, 0], dtype=torch.long)  # B (NOTE: all pseudo-labels are set as 0)
-        loss = self.loss_fn(logits / self.t, labels)
+        loss = self.loss_fn(logits / self.config.temperature, labels)
         return loss, logits, labels
 
     def _sample_negative_behavior_embeddings(

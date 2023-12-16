@@ -1,5 +1,4 @@
 from abc import ABC
-from typing import Optional
 
 import torch
 from torch import nn
@@ -11,7 +10,7 @@ from model.config import UserBERTConfig
 
 class UserEncoder(BertPreTrainedModel, ABC):
     def __init__(self, config: UserBERTConfig):
-        config = BertConfig(
+        bert_config = BertConfig(
             hidden_size=config.embedding_dim,
             num_hidden_layers=config.num_hidden_layers,
             pad_token_id=config.pad_index,
@@ -19,10 +18,10 @@ class UserEncoder(BertPreTrainedModel, ABC):
             item_vocab_size=config.item_vocab_size,
             value_vocab_size=config.value_vocab_size,
         )
-        super().__init__(config)
-        self.config = config
-        self.behavior_encoder = BehaviorEmbedding(config)
-        self.behavior_context_encoder = BehaviorContextEncoder(config)
+        super().__init__(bert_config)
+        self.bert_config = bert_config
+        self.behavior_encoder = BehaviorEmbedding(bert_config)
+        self.behavior_context_encoder = BehaviorContextEncoder(bert_config)
         self.post_init()
 
     def forward(
@@ -54,7 +53,7 @@ class UserEncoder(BertPreTrainedModel, ABC):
             attention_mask = torch.ones(input_shape, device=device)
 
         extended_attention_mask: torch.Tensor = self.get_extended_attention_mask(attention_mask, input_shape)
-        head_mask: torch.Tensor = self.get_head_mask(None, self.config.num_hidden_layers)
+        head_mask: torch.Tensor = self.get_head_mask(None, self.bert_config.num_hidden_layers)
 
         behavior_embeddings = self.extract_behavior_embeddings(item_ids, rating_values)
         context_embeddings = self.behavior_context_encoder(
@@ -84,7 +83,7 @@ class BehaviorContextEncoder(nn.Module):
         self,
         behavior_embeddings: torch.Tensor,
         attention_mask: torch.LongTensor | None = None,
-        head_mask: Optional[torch.FloatTensor] = None,
+        head_mask: torch.FloatTensor | None = None,
     ) -> torch.Tensor:
         encoder_outputs = self.encoder(behavior_embeddings, attention_mask, head_mask=head_mask, return_dict=False)
         context_embeddings = encoder_outputs[0]

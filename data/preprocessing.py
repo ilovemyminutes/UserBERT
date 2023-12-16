@@ -1,5 +1,4 @@
 from collections import defaultdict
-from typing import Optional
 
 import numpy as np
 
@@ -83,7 +82,7 @@ def mask_behavior_sequence_by_items(
     behavior_sequence: list[np.ndarray],
     mask_index: int = 1,
     num_mask_items: int = 10,
-    no_mask_at: Optional[set[int]] = None,
+    no_mask_at: set[int] | None = None,
 ) -> tuple[list[np.ndarray], list[np.ndarray], np.ndarray]:
     indices_by_content: defaultdict[int, list[int]] = defaultdict(list)
     for idx, content_idx in enumerate(behavior_sequence[1]):
@@ -109,7 +108,7 @@ def mask_behavior_sequence_by_items(
 
 
 def mask_behavior_sequence(
-    behavior_sequence: list[np.ndarray], mask_index: int = 1, num_masks: int = 10, no_mask_at: Optional[set[int]] = None
+    behavior_sequence: list[np.ndarray], mask_index: int = 1, num_masks: int = 10, no_mask_at: set[int] | None = None
 ) -> tuple[list[np.ndarray], list[np.ndarray], np.ndarray]:
     masked_seq: list[np.ndarray] = [s.copy() for s in behavior_sequence]
     masked_pos_to_pred = np.sort(

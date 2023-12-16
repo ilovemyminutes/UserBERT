@@ -1,7 +1,6 @@
 from functools import cached_property
 import linecache
 from pathlib import Path
-from typing import Optional
 
 import numpy as np
 
@@ -18,7 +17,7 @@ class BehaviorDataReader:
         self.vl_path = str(data_dir / VALUES_FILE)
         self.ts_path = str(data_dir / TIMESTAMPS_FILE)
 
-        self.lineno_by_user: Optional[dict[int, int]] = None
+        self.lineno_by_user: dict[int, int] | None = None
         self._update_cache()
 
     def read(self, index: int | None = None, user_id: int | None = None) -> tuple[int, list[np.ndarray]]:
