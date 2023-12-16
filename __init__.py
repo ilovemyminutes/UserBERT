@@ -26,6 +26,7 @@ class UserBERTPretrainingModule:
         pl.seed_everything(self.config.seed)
         self.prepare()
         self.train()
+        self.save()
 
     def prepare(self):
         self._build_data()
@@ -36,6 +37,9 @@ class UserBERTPretrainingModule:
     def train(self):
         trainer = self._build_trainer()
         trainer.fit(model=self.model, datamodule=self.datamodule)
+
+    def save(self):
+        pass
 
     def _build_data(self):
         log_start = datetime.strptime(self.config.log_start, "%Y-%m-%d")
