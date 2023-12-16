@@ -1,7 +1,7 @@
 from argparse import ArgumentParser, Namespace
 from pathlib import Path
 
-from __init__ import UserBERTBuilder
+from __init__ import UserBERTPretrainingModule
 
 WORKSPACE_DIR = Path("/Users/ilovemyminutes/Documents/workspace/")
 RAW_DATA_DIR = WORKSPACE_DIR / "data/ml-25m"
@@ -9,7 +9,7 @@ USER_BERT_DIR = WORKSPACE_DIR / "data/user_bert"
 
 
 def main(config: Namespace):
-    UserBERTBuilder(config).build()
+    UserBERTPretrainingModule(config).build()
 
 
 if __name__ == "__main__":
@@ -28,7 +28,7 @@ if __name__ == "__main__":
     data_parser.add_argument("--num_users", type=int, default=-1)
     data_parser.add_argument("--valid_size", type=float, default=0.05)
 
-    train_parser = parser.add_argument_group("train arguments")
+    train_parser = parser.add_argument_group("pretrain arguments")
     train_parser.add_argument("--lr", type=float, default=1e-4)
     train_parser.add_argument("--mbp_seq_len", type=int, default=400)
     train_parser.add_argument("--bsm_seq_len", type=int, default=200)
