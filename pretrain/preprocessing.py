@@ -78,15 +78,12 @@ def mask_behavior_sequence_by_items(
     behavior_sequence: list[np.ndarray],
     mask_index: int = 1,
     num_mask_items: int = 10,
-    no_mask_at: set[int] | None = None,
 ) -> tuple[list[np.ndarray], list[np.ndarray], np.ndarray]:
     indices_by_item: defaultdict[int, list[int]] = defaultdict(list)
     for i, item_idx in enumerate(behavior_sequence[0]):
-        if no_mask_at is not None and i in no_mask_at:
-            continue
         indices_by_item[item_idx].append(i)
     if len(indices_by_item) <= num_mask_items:
-        return mask_behavior_sequence(behavior_sequence, mask_index, num_mask_items, no_mask_at)
+        return mask_behavior_sequence(behavior_sequence, mask_index, num_mask_items)
 
     masked_seq: list[np.ndarray] = [s.copy() for s in behavior_sequence]
     items_to_mask = np.random.choice(list(indices_by_item), size=num_mask_items, replace=False)
@@ -104,11 +101,11 @@ def mask_behavior_sequence_by_items(
 
 
 def mask_behavior_sequence(
-    behavior_sequence: list[np.ndarray], mask_index: int = 1, num_masks: int = 10, no_mask_at: set[int] | None = None
+    behavior_sequence: list[np.ndarray], mask_index: int = 1, num_masks: int = 10
 ) -> tuple[list[np.ndarray], list[np.ndarray], np.ndarray]:
     masked_seq: list[np.ndarray] = [s.copy() for s in behavior_sequence]
     masked_pos_to_pred = np.sort(
-        np.random.choice([i for i in range(len(masked_seq[0])) if i not in no_mask_at], size=num_masks, replace=False)
+        np.random.choice([i for i in range(len(masked_seq[0]))], size=num_masks, replace=False)
     )
     true_behaviors: list[np.ndarray] = [s[masked_pos_to_pred][:, np.newaxis] for s in masked_seq]
     for s in masked_seq:
