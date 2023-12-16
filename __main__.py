@@ -29,7 +29,9 @@ if __name__ == "__main__":
     data_parser.add_argument("--valid_size", type=float, default=0.05)
 
     train_parser = parser.add_argument_group("pretrain arguments")
+    train_parser.add_argument("--epochs", type=int, default=1)
     train_parser.add_argument("--lr", type=float, default=1e-4)
+    train_parser.add_argument("--batch_size", type=int, default=8)
     train_parser.add_argument("--mbp_seq_len", type=int, default=400)
     train_parser.add_argument("--bsm_seq_len", type=int, default=200)
     train_parser.add_argument("--num_train_negative_samples", type=int, default=4)
@@ -37,9 +39,16 @@ if __name__ == "__main__":
     train_parser.add_argument("--mask_prob", type=float, default=0.1)
     train_parser.add_argument("--temperature", type=float, default=1.0)
     train_parser.add_argument("--weight_decay", type=float, default=1e-2, help="weight decay rate")
-    train_parser.add_argument("--ckpt_dir", type=Path, default=USER_BERT_DIR / "ckpt")
+
+    logging_parser = parser.add_argument_group("experiment logging arguments")
+    logging_parser.add_argument("--project", type=str, default="user-modeling")
+    logging_parser.add_argument("--name", type=str, default="experiment-1")
+    logging_parser.add_argument("--offline", action="store_true")
+    logging_parser.add_argument("--ckpt_dir", type=Path, default=USER_BERT_DIR / "ckpt")
 
     compute_parser = parser.add_argument_group("computation arguments")
+    compute_parser.add_argument("--devices", type=int, default=1)
     compute_parser.add_argument("--num_workers", type=int, default=6, help="number of processes for data loading")
+    compute_parser.add_argument("--precision", type=int, default=16)
     compute_parser.add_argument("--seed", type=int, default=42)
     main(parser.parse_args())
