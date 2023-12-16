@@ -74,12 +74,16 @@ class BehaviorDataBuilder(DataBuilder):
         test_log_start: datetime | None = None,
         num_items: int = 20000,
         rating_scale: int = 10,
+        min_seq_len: int = 50,
+        max_seq_len: int = -1,
         pretrained_tokenizer_dir: Path | None = None,
         n_jobs: int = 4,
     ):
         self.data_dir = data_dir
         self.num_items = num_items
         self.rating_scale = rating_scale
+        self.min_seq_len = min_seq_len
+        self.max_seq_len = max_seq_len
         self.pretrained_tokenizer_dir = pretrained_tokenizer_dir
         self.n_jobs = n_jobs
 
@@ -138,6 +142,12 @@ class BehaviorDataBuilder(DataBuilder):
             & (self.raw_data[COL_ITEM_ID].isin(self.item_tokenizer))
             & (self.raw_data[COL_ITEM_VALUE].isin(self.value_tokenizer))
         ]
+        seq_len_by_user = source[COL_USER_ID].value_counts()
+        seq_len_by_user = seq_len_by_user[self.min_seq_len <= seq_len_by_user]
+        if self.max_seq_len != -1:
+            seq_len_by_user = seq_len_by_user[seq_len_by_user <= self.max_seq_len]
+        source = source[COL_USER_ID].isin(seq_len_by_user.index)
+
         source_ref: ray.ObjectRef = ray.put(source)
         item_tokenizer_ref: ray.ObjectRef = ray.put(self.item_tokenizer)
         value_tokenizer_ref: ray.ObjectRef = ray.put(self.value_tokenizer)
