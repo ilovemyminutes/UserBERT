@@ -35,7 +35,7 @@ class PretrainDataset(Dataset, BehaviorDataReader):
         self.cls_index = cls_index
 
         self.user_ids: list[int] = sorted(user_pool & self.user_pool) if user_pool is not None else list(self.user_pool)
-        self.num_masks = int(mbp_seq_len * mask_prob)
+        self.mask_prob = mask_prob
 
     def __getitem__(
         self, index: int
@@ -47,7 +47,7 @@ class PretrainDataset(Dataset, BehaviorDataReader):
         # MBP: masked behavior prediction
         seq_m = sample_single_behavior_sequence(seq, max_seq_len=self.mbp_seq_len - 1)  # -1 for [CLS]
         masked_seq, true_behaviors, masked_pos_indices = mask_behavior_sequence_by_items(
-            seq_m, self.mask_idx, self.num_masks
+            seq_m, self.mask_idx, max(1, int(self.mask_prob * len(seq_m)))
         )
         packed_masked_seq = pack_behavior_sequence(masked_seq, self.mbp_seq_len, self.cls_index, self.pad_idx)
 
