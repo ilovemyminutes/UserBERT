@@ -8,7 +8,6 @@ def pack_behavior_sequence(
     max_seq_len: int,
     cls_index: int = 2,
     pad_index: int = 0,
-    no_attention_mask: bool = False,
 ) -> list[np.ndarray]:
     seq_len: int = len(behavior_sequence[0])
     max_seq_len -= 1  # -1 for [CLS]
@@ -23,14 +22,11 @@ def pack_behavior_sequence(
         packed_seq = [np.concatenate([cls, seq[start_idx : start_idx + max_seq_len]]) for seq in behavior_sequence]
     else:
         packed_seq = [np.concatenate([cls, seq]) for seq in behavior_sequence]
-    if not no_attention_mask:
-        packed_seq.append(
-            np.ones(max_seq_len + 1, dtype=np.int64)
-            if num_pads == 0
-            else np.concatenate(
-                [np.ones(max_seq_len - num_pads + 1, dtype=np.int64), np.zeros(num_pads, dtype=np.int64)]
-            )
-        )
+    packed_seq.append(
+        np.ones(max_seq_len + 1, dtype=np.int64)
+        if num_pads == 0
+        else np.concatenate([np.ones(max_seq_len - num_pads + 1, dtype=np.int64), np.zeros(num_pads, dtype=np.int64)])
+    )
     return packed_seq
 
 
@@ -43,29 +39,29 @@ def sample_single_behavior_sequence(behavior_sequence: list[np.ndarray], max_seq
 
 
 def sample_behavior_sequence_pair(
-    behavior_sequence: list[np.ndarray], max_seq_len_0: int, max_seq_len_1: int
+    behavior_sequence: list[np.ndarray], max_seq_len: int
 ) -> tuple[list[np.ndarray], list[np.ndarray]]:
     seq_len = len(behavior_sequence[0])
-    total_max_seq_len = max_seq_len_0 + max_seq_len_1
+    total_seq_len = 2 * max_seq_len
     seq_0, seq_1 = [], []
-    if seq_len == total_max_seq_len:
+    if seq_len == total_seq_len:
         for seq in behavior_sequence:
             seq_0.append(seq[:seq_len])
             seq_1.append(seq[seq_len : seq_len * 2])
-    elif seq_len > total_max_seq_len:
+    elif seq_len > total_seq_len:
         # 1st sequence boundary
-        left_0 = np.random.choice(seq_len - total_max_seq_len)
-        right_0 = left_0 + max_seq_len_0
+        left_0 = np.random.choice(seq_len - total_seq_len)
+        right_0 = left_0 + max_seq_len
 
         candidates = []
-        if seq_len - right_0 >= max_seq_len_1:  # 첫 시퀀스 우측에서 샘플링 가능할 경우
-            candidates += list(range(right_0, seq_len - max_seq_len_1))
-        if left_0 >= max_seq_len_1:  # 첫 시퀀스 좌측에서 샘플링 가능할 경우
-            candidates += list(range(left_0 - max_seq_len_1))
+        if seq_len - right_0 >= max_seq_len:  # 첫 시퀀스 우측에서 샘플링 가능할 경우
+            candidates += list(range(right_0, seq_len - max_seq_len))
+        if left_0 >= max_seq_len:  # 첫 시퀀스 좌측에서 샘플링 가능할 경우
+            candidates += list(range(left_0 - max_seq_len))
 
         # 2nd sequence boundary
         left_1 = np.random.choice(candidates)
-        right_1 = left_1 + max_seq_len_1
+        right_1 = left_1 + max_seq_len
 
         for seq in behavior_sequence:
             seq_0.append(seq[left_0:right_0])
