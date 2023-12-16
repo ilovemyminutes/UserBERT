@@ -15,7 +15,7 @@ def main(config: Namespace):
 if __name__ == "__main__":
     parser = ArgumentParser(description="user modeling")
     model_parser = parser.add_argument_group("model arguments")
-    model_parser.add_argument("--embedding_dim", type=int, default=768)
+    model_parser.add_argument("--embedding_dim", type=int, default=120)
     model_parser.add_argument("--num_hidden_layers", type=int, default=8)
     model_parser.add_argument("--dropout", type=float, default=0.1)
 
