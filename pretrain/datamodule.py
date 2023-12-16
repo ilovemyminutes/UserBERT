@@ -21,7 +21,7 @@ from data.utils import (
 )
 from data.utils import load_json
 from model.user_bert_config import UserBERTConfig
-from train.dataset import PretrainDataset
+from pretrain.dataset import PretrainDataset
 
 logger = getLogger(__name__)
 
