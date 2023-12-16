@@ -46,7 +46,7 @@ class PretrainDataModule(pl.LightningDataModule):
 
     def prepare_data(self):
         _, self.data_dir = get_version_info(version="latest", user_bert_dir=self.config.user_bert_dir)
-        if not (self.data_dir / MODEL_DIR / PARAM_FILE).exists():
+        if not (self.data_dir / MODEL_DIR / MODEL_CONFIG_FILE).exists():
             (self.data_dir / MODEL_DIR).mkdir(exist_ok=True)
             self._load_tokenizers()
             self.model_config = UserBERTConfig(
