@@ -146,7 +146,7 @@ class BehaviorDataBuilder(DataBuilder):
         seq_len_by_user = seq_len_by_user[self.min_seq_len <= seq_len_by_user]
         if self.max_seq_len != -1:
             seq_len_by_user = seq_len_by_user[seq_len_by_user <= self.max_seq_len]
-        source = source[COL_USER_ID].isin(seq_len_by_user.index)
+        source = source[source[COL_USER_ID].isin(seq_len_by_user.index)]
 
         source_ref: ray.ObjectRef = ray.put(source)
         item_tokenizer_ref: ray.ObjectRef = ray.put(self.item_tokenizer)
