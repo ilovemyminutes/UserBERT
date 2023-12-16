@@ -44,17 +44,17 @@ class PretrainDataset(Dataset, BehaviorDataReader):
     ]:
         user_id, seq = self.read(user_id=self.user_ids[index])
 
-        # BSM: behavior sequence matching
-        seq_0, seq_1 = sample_behavior_sequence_pair(seq, self.bsm_seq_len)  # -1 for [CLS]
-        packed_seq_0 = pack_behavior_sequence(seq_0, self.bsm_seq_len, self.cls_index, self.pad_idx)
-        packed_seq_1 = pack_behavior_sequence(seq_1, self.bsm_seq_len, self.cls_index, self.pad_idx)
-
         # MBP: masked behavior prediction
         seq_m = sample_single_behavior_sequence(seq, max_seq_len=self.mbp_seq_len - 1)  # -1 for [CLS]
         packed_seq_m = pack_behavior_sequence(seq_m, self.mbp_seq_len, self.cls_index, self.pad_idx)
         packed_masked_seq, true_behaviors, masked_pos_indices = mask_behavior_sequence_by_items(
             packed_seq_m, self.mask_idx, self.num_masks, no_mask_at={0}
         )
+
+        # BSM: behavior sequence matching
+        seq_0, seq_1 = sample_behavior_sequence_pair(seq, self.bsm_seq_len)  # -1 for [CLS]
+        packed_seq_0 = pack_behavior_sequence(seq_0, self.bsm_seq_len, self.cls_index, self.pad_idx)
+        packed_seq_1 = pack_behavior_sequence(seq_1, self.bsm_seq_len, self.cls_index, self.pad_idx)
 
         batch_mbp = (
             [torch.from_numpy(s) for s in packed_masked_seq],
