@@ -19,7 +19,7 @@ from data.utils import (
     TRAIN_DIR,
     get_version_info,
 )
-from data.utils import load_json
+from data.utils import load_pickle
 from model.user_bert_config import UserBERTConfig
 from pretrain.dataset import PretrainDataset
 
@@ -102,8 +102,8 @@ class PretrainDataModule(pl.LightningDataModule):
         )
 
     def _load_tokenizers(self):
-        self.item_tokenizer = load_json(self.data_dir / ITEM_TOKENIZER_FILE)
-        self.value_tokenizer = load_json(self.data_dir / VALUE_TOKENIZER_FILE)
+        self.item_tokenizer = load_pickle(self.data_dir / ITEM_TOKENIZER_FILE)
+        self.value_tokenizer = load_pickle(self.data_dir / VALUE_TOKENIZER_FILE)
 
     def _split_data(self):
         user_ids = [int(u_id) for u_id in open(self.data_dir / TRAIN_DIR / USER_FILE, "r")]
