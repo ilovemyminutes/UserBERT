@@ -9,7 +9,7 @@ from torch import nn
 from torch.optim import AdamW, Optimizer
 from torch.optim.lr_scheduler import OneCycleLR
 
-from model.config import UserBERTConfig
+from model.user_bert_config import UserBERTConfig
 from model.user_encoder import UserEncoder
 
 
@@ -288,5 +288,5 @@ class UserBERT(pl.LightningModule):
         return neg_u_embs
 
     @classmethod
-    def from_config(cls, fpath: Path | str) -> UserBERT:
+    def from_config_file(cls, fpath: Path | str) -> UserBERT:
         return UserBERT(UserBERTConfig.from_json(fpath))

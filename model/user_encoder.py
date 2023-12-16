@@ -5,7 +5,7 @@ from torch import nn
 from transformers import BertConfig, BertPreTrainedModel
 from transformers.models.bert.modeling_bert import BertEncoder
 
-from model.config import UserBERTConfig
+from model.user_bert_config import UserBERTConfig
 
 
 class UserEncoder(BertPreTrainedModel, ABC):

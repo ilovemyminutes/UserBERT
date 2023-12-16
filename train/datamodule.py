@@ -8,7 +8,6 @@ import pytorch_lightning as pl
 from torch.utils.data import DataLoader
 
 from data.builder import USER_FILE
-from data.dataset import PretrainDataset
 from data.utils import (
     ITEM_TOKENIZER_FILE,
     VALUE_TOKENIZER_FILE,
@@ -21,7 +20,8 @@ from data.utils import (
     get_version_info,
 )
 from data.utils import load_json
-from model.config import UserBERTConfig
+from model.user_bert_config import UserBERTConfig
+from train.dataset import PretrainDataset
 
 logger = getLogger(__name__)
 
@@ -36,7 +36,7 @@ class PretrainDataModule(pl.LightningDataModule):
 
         self.item_tokenizer: dict[str, int] | None = None
         self.value_tokenizer: dict[str, int] | None = None
-        self.model_config: UserBERTConfig | None = None
+        self.user_bert_config: UserBERTConfig | None = None
 
         self.train_user_pool: set[int] | None = None
         self.valid_user_pool: set[int] | None = None
@@ -49,7 +49,7 @@ class PretrainDataModule(pl.LightningDataModule):
         if not (self.data_dir / MODEL_DIR / MODEL_CONFIG_FILE).exists():
             (self.data_dir / MODEL_DIR).mkdir(exist_ok=True)
             self._load_tokenizers()
-            self.model_config = UserBERTConfig(
+            self.user_bert_config = UserBERTConfig(
                 embedding_dim=self.config.embedding_dim,
                 item_vocab_size=len(self.item_tokenizer),
                 value_vocab_size=len(self.value_tokenizer),
@@ -63,10 +63,10 @@ class PretrainDataModule(pl.LightningDataModule):
                 lr=self.config.lr,
                 weight_decay=self.config.weight_decay,
             )
-            self.model_config.to_json(self.data_dir / MODEL_DIR / MODEL_CONFIG_FILE)
+            self.user_bert_config.to_json(self.data_dir / MODEL_DIR / MODEL_CONFIG_FILE)
         else:
             self._load_tokenizers()
-            self.model_config = UserBERTConfig.from_json(self.data_dir / MODEL_DIR / MODEL_CONFIG_FILE)
+            self.user_bert_config = UserBERTConfig.from_json(self.data_dir / MODEL_DIR / MODEL_CONFIG_FILE)
 
     def setup(self, stage: Optional[str] = None):
         self._split_data()

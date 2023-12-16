@@ -4,7 +4,7 @@ import torch
 from torch.utils.data import Dataset
 
 from data.reader import BehaviorDataReader
-from data.preprocessing import (
+from train.preprocessing import (
     mask_behavior_sequence_by_items,
     pack_behavior_sequence,
     sample_behavior_sequence_pair,
