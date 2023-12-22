@@ -10,7 +10,7 @@ def get_config() -> Namespace:
     parser = ArgumentParser(description="user modeling")
     model_parser = parser.add_argument_group("model arguments")
     model_parser.add_argument("--embedding_dim", type=int, default=384)
-    model_parser.add_argument("--intermediate_embedding_dim", type=int, default=384)
+    model_parser.add_argument("--intermediate_embedding_dim", type=int, default=1536)
     model_parser.add_argument("--num_hidden_layers", type=int, default=8)
     model_parser.add_argument("--dropout", type=float, default=0.1)
 
