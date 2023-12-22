@@ -15,9 +15,9 @@ def get_config() -> Namespace:
     model_parser.add_argument("--dropout", type=float, default=0.1)
 
     data_parser = parser.add_argument_group("data arguments")
-    data_parser.add_argument("--log_start", type=str, default="2015-01-01")
+    data_parser.add_argument("--log_start", type=str, default="2010-01-01")
     data_parser.add_argument("--log_end", type=str, default="2019-12-31")
-    data_parser.add_argument("--min_seq_len", type=int, default=100)
+    data_parser.add_argument("--min_seq_len", type=int, default=50)
     data_parser.add_argument("--max_seq_len", type=int, default=-1)
     data_parser.add_argument("--data_dir", type=Path, default=DATA_DIR)
     data_parser.add_argument("--save_dir", type=Path, default=SAVE_DIR)
@@ -26,7 +26,7 @@ def get_config() -> Namespace:
     data_parser.add_argument("--valid_size", type=float, default=0.05)
 
     train_parser = parser.add_argument_group("pretrain arguments")
-    train_parser.add_argument("--epochs", type=int, default=1)
+    train_parser.add_argument("--epochs", type=int, default=60)
     train_parser.add_argument("--lr", type=float, default=1e-4)
     train_parser.add_argument("--batch_size", type=int, default=32)
     train_parser.add_argument("--mbp_seq_len", type=int, default=100)
