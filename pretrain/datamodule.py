@@ -1,7 +1,6 @@
 from argparse import Namespace
 from logging import getLogger
 from pathlib import Path
-from typing import Optional
 
 import numpy as np
 import pytorch_lightning as pl
@@ -69,7 +68,7 @@ class PretrainDataModule(pl.LightningDataModule):
             self._load_tokenizers()
             self.user_bert_config = UserBERTConfig.from_json(self.version_dir / MODEL_DIR / MODEL_CONFIG_FILE)
 
-    def setup(self, stage: Optional[str] = None):
+    def setup(self, stage: str | None = None):
         self._split_data()
         self.train_dataset = PretrainDataset(
             self.version_dir / TRAIN_DIR,
