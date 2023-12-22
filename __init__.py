@@ -8,13 +8,12 @@ from pytorch_lightning.callbacks import LearningRateMonitor, ModelCheckpoint
 from pytorch_lightning.loggers import WandbLogger
 
 from data.builder import BehaviorDataBuilder
-from data.utils import load_json
 from model.user_bert import UserBERT
 from pretrain.datamodule import PretrainDataModule
 
 
 class UserBERTPretrainingModule:
-    CHECKPOINT_NAME = "best_user_bert"
+    CKPT_NAME = "best_user_bert"
 
     def __init__(self, config: Namespace):
         self.config = config
@@ -45,8 +44,8 @@ class UserBERTPretrainingModule:
         log_start = datetime.strptime(self.config.log_start, "%Y-%m-%d")
         log_end = datetime.strptime(self.config.log_end, "%Y-%m-%d")
         BehaviorDataBuilder(
-            self.config.raw_data_dir,
-            self.config.user_bert_dir,
+            self.config.data_dir,
+            self.config.save_dir,
             log_start,
             log_end,
             num_items=self.config.num_items,
@@ -55,11 +54,9 @@ class UserBERTPretrainingModule:
 
     def _build_trainer(self) -> pl.Trainer:
         if not self.config.offline:
-            key = os.environ.get(
-                "WANDB_API_KEY",
-                load_json("/Users/ilovemyminutes/Documents/workspace/credentials/credentials.json")["WANDB_API_KEY"],
-            )
-            wandb.login(key=key)
+            if not self.config.wandb_api_key:
+                raise ValueError("input wandb_api_key if you need experiment logging")
+            wandb.login(key=self.config.wandb_api_key)
         exp_logger = WandbLogger(
             name=self.config.name,
             project=self.config.project,
@@ -70,7 +67,7 @@ class UserBERTPretrainingModule:
         callbacks = [
             ModelCheckpoint(
                 dirpath=self.config.ckpt_dir,
-                filename=self.CHECKPOINT_NAME,
+                filename=self.CKPT_NAME,
                 auto_insert_metric_name=False,
                 save_weights_only=True,
                 monitor="valid_loss",
