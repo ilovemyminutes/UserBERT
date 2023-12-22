@@ -9,6 +9,7 @@ from data.utils import dump_json, load_json
 @dataclass
 class UserBERTConfig:
     embedding_dim: int = 384
+    intermediate_embedding_dim: int = 384
     item_vocab_size: int = 20003
     value_vocab_size: int = 13
     num_hidden_layers: int = 12

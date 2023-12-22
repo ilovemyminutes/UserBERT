@@ -12,6 +12,7 @@ class UserEncoder(BertPreTrainedModel, ABC):
     def __init__(self, config: UserBERTConfig):
         bert_config = BertConfig(
             hidden_size=config.embedding_dim,
+            intermediate_size=config.intermediate_embedding_dim,
             num_hidden_layers=config.num_hidden_layers,
             pad_token_id=config.pad_index,
             hidden_dropout_prob=config.dropout,
