@@ -31,7 +31,7 @@ class PretrainDataModule(pl.LightningDataModule):
         super().__init__()
         self.config = config
 
-        self.data_dir: Path | None = None
+        self.version_dir: Path | None = None
         self.num_users: int | None = None
 
         self.item_tokenizer: dict[str, int] | None = None
@@ -45,12 +45,13 @@ class PretrainDataModule(pl.LightningDataModule):
         self.valid_dataset: PretrainDataset | None = None
 
     def prepare_data(self):
-        _, self.data_dir = get_version_info(version="latest", user_bert_dir=self.config.user_bert_dir)
-        if not (self.data_dir / MODEL_DIR / MODEL_CONFIG_FILE).exists():
-            (self.data_dir / MODEL_DIR).mkdir(exist_ok=True)
+        _, self.version_dir = get_version_info(version="latest", user_bert_dir=self.config.save_dir)
+        if not (self.version_dir / MODEL_DIR / MODEL_CONFIG_FILE).exists():
+            (self.version_dir / MODEL_DIR).mkdir(exist_ok=True)
             self._load_tokenizers()
             self.user_bert_config = UserBERTConfig(
                 embedding_dim=self.config.embedding_dim,
+                intermediate_embedding_dim=self.config.intermediate_embedding_dim,
                 item_vocab_size=len(self.item_tokenizer),
                 value_vocab_size=len(self.value_tokenizer),
                 num_hidden_layers=self.config.num_hidden_layers,
@@ -63,15 +64,15 @@ class PretrainDataModule(pl.LightningDataModule):
                 lr=self.config.lr,
                 weight_decay=self.config.weight_decay,
             )
-            self.user_bert_config.to_json(self.data_dir / MODEL_DIR / MODEL_CONFIG_FILE)
+            self.user_bert_config.to_json(self.version_dir / MODEL_DIR / MODEL_CONFIG_FILE)
         else:
             self._load_tokenizers()
-            self.user_bert_config = UserBERTConfig.from_json(self.data_dir / MODEL_DIR / MODEL_CONFIG_FILE)
+            self.user_bert_config = UserBERTConfig.from_json(self.version_dir / MODEL_DIR / MODEL_CONFIG_FILE)
 
     def setup(self, stage: Optional[str] = None):
         self._split_data()
         self.train_dataset = PretrainDataset(
-            self.data_dir / TRAIN_DIR,
+            self.version_dir / TRAIN_DIR,
             user_pool=self.train_user_pool,
             bsm_seq_len=self.config.bsm_seq_len,
             mbp_seq_len=self.config.mbp_seq_len,
@@ -81,7 +82,7 @@ class PretrainDataModule(pl.LightningDataModule):
             mask_prob=self.config.mask_prob,
         )
         self.valid_dataset = PretrainDataset(
-            self.data_dir / TRAIN_DIR,
+            self.version_dir / TRAIN_DIR,
             user_pool=self.valid_user_pool,
             bsm_seq_len=self.config.bsm_seq_len,
             mbp_seq_len=self.config.mbp_seq_len,
@@ -102,11 +103,11 @@ class PretrainDataModule(pl.LightningDataModule):
         )
 
     def _load_tokenizers(self):
-        self.item_tokenizer = load_pickle(self.data_dir / ITEM_TOKENIZER_FILE)
-        self.value_tokenizer = load_pickle(self.data_dir / VALUE_TOKENIZER_FILE)
+        self.item_tokenizer = load_pickle(self.version_dir / ITEM_TOKENIZER_FILE)
+        self.value_tokenizer = load_pickle(self.version_dir / VALUE_TOKENIZER_FILE)
 
     def _split_data(self):
-        user_ids = [int(u_id) for u_id in open(self.data_dir / TRAIN_DIR / USER_FILE, "r")]
+        user_ids = [int(u_id) for u_id in open(self.version_dir / TRAIN_DIR / USER_FILE, "r")]
         if self.config.num_users == -1:
             self.num_users = len(user_ids)
         elif len(user_ids) < self.config.num_users:
