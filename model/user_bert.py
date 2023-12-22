@@ -37,7 +37,6 @@ class UserBERT(pl.LightningModule):
             _,
             _,
             _,
-            _,
             labels_bsm,
         ) = self._shared_step(batch, k=self.config.num_train_negative_samples)
         batch_size = len(labels_bsm)
